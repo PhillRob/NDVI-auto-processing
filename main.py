@@ -4,13 +4,13 @@ import datetime
 import json
 
 
-#ee.Authenticate()
+ee.Authenticate()
 ee.Initialize()
 
 
 # variables
 ## import AOI
-with open('test.json') as f:
+with open('test.geojson') as f:
     data = json.load(f)
 ## set dates for analysis
 py_date = datetime.datetime.utcnow()
