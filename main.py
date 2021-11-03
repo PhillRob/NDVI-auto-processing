@@ -4,7 +4,7 @@ import datetime
 import json
 
 
-ee.Authenticate()
+#ee.Authenticate()
 ee.Initialize()
 
 
@@ -15,33 +15,194 @@ with open('DQ.geojson') as f:
 ## set dates for analysis
 py_date = datetime.datetime.utcnow()
 ee_date = ee.Date(py_date)
-print(ee_date)
+#print(ee_date)
+
+start_date = '2020-07-01'
+end_date = '2020-07-02'
+geometry = data['features'][0]['geometry']
+
+def mask_cloud_and_shadows(image):
+    qa = image.select('QA60')
+
+    # Bits 10 and 11 are clouds and cirrus
+    cloud_bitmask = 1 << 10
+    cirrus_bitmask = 1 << 11
+
+    # Both flags should be set to zero, indicating clear conditions
+    mask = qa.bitwiseAnd(cloud_bitmask).eq(0).And(qa.bitwiseAnd(cirrus_bitmask).eq(0))
+
+    return image.updatemask(mask).divide(10000).copyProperties(image, ['system:time_start'])
+
+def add_NDVI(image):
+
+    ndvi = image.normalizedDifference(['B8', 'B4']).rename('ndvi')
+    ndvi02 = ndvi.gt(0.2)
+    ndvi_img = image.addBands(ndvi).updateMask(ndvi02)
+    ndvi02_area = ndvi02.multiply(ee.Image.pixelArea()).rename('ndvi02_area')
+
+    # adding area of vegetation as a band
+    ndvi_img = ndvi_img.addBands(ndvi02_area)
+
+    # calculate ndvi > 0.2 area
+    ndviStats = ndvi02_area.reduceRegion(
+        reducer=ee.Reducer.sum(),
+        geometry=geometry,
+        scale=10,
+        maxPixels=2931819000
+    )
+
+    image = image.set(ndviStats)
+
+    # calculate area of AOI
+    area = image.select('B1').multiply(0).add(1).multiply(ee.Image.pixelArea()).rename('area')
+
+    # calculate area
+    img_stats = area.reduceRegion(
+        reducer=ee.Reducer.sum(),
+        geometry=geometry,
+        scale=10,
+        maxPixels=2931819000
+    )
+    image = image.set(img_stats)
+
+    a = image.getNumber('ndvi02_area').divide(image.getNumber('area')).multiply(100)
+    b = image.getNumber('ndvi02_area')
+
+    rel_cover = image.select('B1').multiply(0).add(a).rename('rel_ndvi')
+    image = image.addBands(rel_cover)
+    image = image.addBands(ndvi)
+
+    thres = ndvi.gte(0.2).rename('thres')
+    image = image.addBands(thres)
+    image = image.addBands(b)
+    return image
+
+# def format_function(table, row_id, col_id):
+#     rows = table.distinct(row_id)
+#     joined = ee.Join.saveAll('matches').apply(
+#         primary=rows,
+#         secondary=table,
+#         condition=ee.Filter.equals(
+#             leftField=row_id,
+#             rightField=row_id
+#         )
+#     )
+#     return joined.map(lambda row: ((value := ee.List(row.get('matches'))
+#                                     .map(lambda feature: (feature := ee.Feature(feature),
+#                                                           [feature.get(col_id), feature.get('ndvi')])[-1])))[-1])
+# def merge_function(table, row_id):
+#     return table.map(lambda feature: (id := feature.get(row_id),
+#                                       all_keys := feature.toDictionary().keys().remove(row_id),
+#                                       substr_keys := ee.List(all_keys.map(lambda val: ee.String(val).slice(0, 8))),
+#                                       unique_keys := substr_keys.distinct(),
+#                                       pairs := unique_keys.map(lambda key: (matches := feature.toDictionary().select(all_keys)))))
+
+collection = (ee.ImageCollection('COPERNICUS/S2')
+    .filterDate(start_date, end_date)
+    .filterBounds(geometry)
+    .map(lambda image: image.clip(geometry))
+    .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 1)))
+
+ndvi_collection = collection.map(add_NDVI)
+print(collection)
+
+# ------> ee.Reducer  not recognized by by Python <-----
+# triplets = ndvi_collection.map(lambda image: image.select('ndvi').reduceRegions(
+#     collection=geometry,
+#     reducer=ee.Reducer.first().setOutputs(['ndvi']),
+#     scale=10
+# )).map(lambda feature: (ndvi := ee.List([feature.get('ndvi'), -9999])).reduce(ee.Reducer.firstNonNull(),
+#                                                                               feature.set(
+#                                                                                   {'ndvi': ndvi,
+#                                                                                    'imageID': image.id()}
+#                                                                               )))[-1].flatten()
+
+#format = format_function
+#sentinelResults = format(triplets, 'id', 'imageID')
+
+
 
 # Map data
 # geometry = data['features'][0]['geometry']['coordinates']
-# set startdate and enddate
+
+# get timeframe specified by user as variable
+# possible options:
+## july 2016, november 2016, last year, two weeks
+
+# function get newest date from month
+# parameter: month, region
+## return latest image date
+
+# function new image data available
+# params (timeframe identifier if july 2016, november 2016, last year, two weeks); data file; region
+#TODO
+## if identifier july2016
+#### compare newest july data to last july data from file; return true/false
+## if identifier november2016
+#### compare newest november data to last july data from file; return true/false
+## if identifier last year
+#### compare last year to most recent date in file return true/false
+
+## if identifier two weeks
+#### compare newest date to most recent date in file return true/false
+
+# function get satellite pictures to compare
+# parameters: (identifier if july 2016, november 2016, last year, two weeks); data file; region
+## if new image data available
+#### if identifier july2016
+###### update datafile
+###### return july 2016 and current july
+#### if identifier november2016
+###### update datafile
+###### return november2016 and current november
+#### if identifier last year
+###### update datafile
+###### return last year image and newest image
+#### if identifier two weeks
+###### update datafile
+###### return image two weeks ago and newest image
+
+
+
 # function to mask cloud and shadows
 # param: image
 # return: updated image without cloud and shadows
-
 
 # function to add NDVI and calculate area
 # param: image
 # return: image with ndvi
 
-# get image from startdate and end date param: date, geometry return: image
-# apply cloud mask to start date and end date image
+# TODO
+# function get cloud cover
+# parameter image
+## return cloud cover percentage
+
+# check if new image data available with the according function
+# if no new satellite data:
+## do nothing
+# if new satellite data:
+## get satellite pictures to compare and save them in variables
+
+# TODO
+# call cloud cover function
+# if cloud cover  over 30%:
+## no report
+# else  comment cloud cover percentage in report
+
+# get satellite pictures to compare
 # apply ndvi function to start date and end date image
+# apply cloud mask to start date and end date image
+# create triplets
+# format triplets
+# merge images
 
-
-# create triplets. what exactly does that mean?
-# format function params: table, rowId, colId
-# apply format functions to triplets
-
-# merge function params: table, rowId
-
-#sentinelMerged = merge function
+# calculate cover in %
+# calculate change
+# data tables of the raw numbers in the report probably with pandas
 
 # create image from difference between start and end image possibly with the Python Image Library
-# save image as png possibly add it to pdf with image results from other timeframes
-# send email via smtpd library
+# or with the thumbnail function in gee
+
+# save image as png save the filename to the data file so we can later generate a pdf from the generated images
+
+# send email with pdf via smtpd library

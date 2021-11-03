@@ -25,3 +25,27 @@ Last data set available to last year’s data set
 Last data set available to 2 weeks ago
 Sentinel 2 
 
+# DQ NDVI Analysis Logic
+
+dates:
+    1. July 2016 to this year July data set
+    2. November 2016 to this year November data set
+    3. Last data set avaible to last years data set (-12month)
+    4. Last data set avaible to -2weeks
+
+if new data available
+    download last image
+    if AOI polygone falls within one image
+        download all data data based on dates 
+        analysis NDVI
+        calculate relative veg cover for dates above
+        calculate vegetated areas
+        calulcate areas and rel veg cover differences 
+        map
+        export results to files
+        email results
+
+    else: mosaicing
+
+else: do nothing
+
