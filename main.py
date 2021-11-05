@@ -2,6 +2,10 @@
 import ee
 import datetime
 import json
+import numpy as np
+from PIL import Image
+import urllib
+# import FireHR for high resolution images; install of package does not work yet
 
 # ee.Authenticate()
 ee.Initialize()
@@ -76,24 +80,32 @@ def add_NDVI(image):
     image = image.addBands(b)
     return image
 
-collection_start = (ee.ImageCollection('COPERNICUS/S2')
+# takes download url of a npy file and saves it as jpg
+def save_as_jpg(url, filename):
+    array_file = urllib.request.urlretrieve(url, filename)
+    img_array = np.load(array_file[0])
+    img_jpg = Image.fromarray(img_array.astype(np.uint8))
+    img_jpg.save(f'{ filename }.jpg')
+
+collection = (ee.ImageCollection('COPERNICUS/S2')
               .filterDate(start_date, end_date)
               .filterBounds(geometry)
               .map(lambda image: image.clip(geometry))
               .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 1)))
 
-ndvi_collection = collection_start.map(add_NDVI)
+ndvi_collection = collection.map(add_NDVI)
 ndvi_img_start = ee.Image(ndvi_collection.toList(ndvi_collection.size()).get(0))
 ndvi_img_end = ee.Image(ndvi_collection.toList(ndvi_collection.size()).get(ndvi_collection.size().subtract(1)))
 
 decline_img = ndvi_img_start.select('thres').subtract(ndvi_img_end.select('thres'))
 growth_img = ndvi_img_end.select('thres').subtract(ndvi_img_start.select('thres'))
-
 #TODO export as jpg
 
-print(growth_img.getDownloadURL({'fileformat': 'jpg', 'scale': 5}))
-print(decline_img.getDownloadURL({'fileformat': 'jpg', 'scale': 5}))
+growth_url = growth_img.getDownloadURL({'format': 'NPY'})
 
+decline_url = decline_img.getDownloadURL({'format': 'NPY'})
+
+save_as_jpg(decline_url, 'decline')
 
 # def format_function(table, row_id, col_id):
 #     rows = table.distinct(row_id)
