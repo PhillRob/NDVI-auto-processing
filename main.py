@@ -3,10 +3,8 @@ import ee
 import datetime
 import json
 
-
-#ee.Authenticate()
+# ee.Authenticate()
 ee.Initialize()
-
 
 # variables
 ## import AOI
@@ -15,11 +13,12 @@ with open('DQ.geojson') as f:
 ## set dates for analysis
 py_date = datetime.datetime.utcnow()
 ee_date = ee.Date(py_date)
-#print(ee_date)
+# print(ee_date)
 
-start_date = '2020-07-01'
-end_date = '2020-07-02'
+start_date = ee.Date(py_date - datetime.timedelta(days=150))
+end_date = ee_date
 geometry = data['features'][0]['geometry']
+
 
 def mask_cloud_and_shadows(image):
     qa = image.select('QA60')
@@ -33,8 +32,8 @@ def mask_cloud_and_shadows(image):
 
     return image.updatemask(mask).divide(10000).copyProperties(image, ['system:time_start'])
 
-def add_NDVI(image):
 
+def add_NDVI(image):
     ndvi = image.normalizedDifference(['B8', 'B4']).rename('ndvi')
     ndvi02 = ndvi.gt(0.2)
     ndvi_img = image.addBands(ndvi).updateMask(ndvi02)
@@ -48,7 +47,7 @@ def add_NDVI(image):
         reducer=ee.Reducer.sum(),
         geometry=geometry,
         scale=10,
-        maxPixels=2931819000
+        maxPixels=10**13
     )
 
     image = image.set(ndviStats)
@@ -61,7 +60,7 @@ def add_NDVI(image):
         reducer=ee.Reducer.sum(),
         geometry=geometry,
         scale=10,
-        maxPixels=2931819000
+        maxPixels=10**13
     )
     image = image.set(img_stats)
 
@@ -76,6 +75,25 @@ def add_NDVI(image):
     image = image.addBands(thres)
     image = image.addBands(b)
     return image
+
+collection_start = (ee.ImageCollection('COPERNICUS/S2')
+              .filterDate(start_date, end_date)
+              .filterBounds(geometry)
+              .map(lambda image: image.clip(geometry))
+              .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 1)))
+
+ndvi_collection = collection_start.map(add_NDVI)
+ndvi_img_start = ee.Image(ndvi_collection.toList(ndvi_collection.size()).get(0))
+ndvi_img_end = ee.Image(ndvi_collection.toList(ndvi_collection.size()).get(ndvi_collection.size().subtract(1)))
+
+decline_img = ndvi_img_start.select('thres').subtract(ndvi_img_end.select('thres'))
+growth_img = ndvi_img_end.select('thres').subtract(ndvi_img_start.select('thres'))
+
+#TODO export as jpg
+
+print(growth_img.getDownloadURL({'fileformat': 'jpg', 'scale': 5}))
+print(decline_img.getDownloadURL({'fileformat': 'jpg', 'scale': 5}))
+
 
 # def format_function(table, row_id, col_id):
 #     rows = table.distinct(row_id)
@@ -97,15 +115,6 @@ def add_NDVI(image):
 #                                       unique_keys := substr_keys.distinct(),
 #                                       pairs := unique_keys.map(lambda key: (matches := feature.toDictionary().select(all_keys)))))
 
-collection = (ee.ImageCollection('COPERNICUS/S2')
-    .filterDate(start_date, end_date)
-    .filterBounds(geometry)
-    .map(lambda image: image.clip(geometry))
-    .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 1)))
-
-ndvi_collection = collection.map(add_NDVI)
-print(collection)
-
 # ------> ee.Reducer  not recognized by by Python <-----
 # triplets = ndvi_collection.map(lambda image: image.select('ndvi').reduceRegions(
 #     collection=geometry,
@@ -117,9 +126,8 @@ print(collection)
 #                                                                                    'imageID': image.id()}
 #                                                                               )))[-1].flatten()
 
-#format = format_function
-#sentinelResults = format(triplets, 'id', 'imageID')
-
+# format = format_function
+# sentinelResults = format(triplets, 'id', 'imageID')
 
 
 # Map data
@@ -135,7 +143,7 @@ print(collection)
 
 # function new image data available
 # params (timeframe identifier if july 2016, november 2016, last year, two weeks); data file; region
-#TODO
+# TODO
 ## if identifier july2016
 #### compare newest july data to last july data from file; return true/false
 ## if identifier november2016
@@ -161,7 +169,6 @@ print(collection)
 #### if identifier two weeks
 ###### update datafile
 ###### return image two weeks ago and newest image
-
 
 
 # function to mask cloud and shadows
