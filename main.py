@@ -11,19 +11,20 @@ import urllib
 ee.Initialize()
 
 # variables
-## import AOI
+## import AOI and set geometry
 with open('DQ.geojson') as f:
     data = json.load(f)
+geometry = data['features'][0]['geometry']
+
 ## set dates for analysis
 py_date = datetime.datetime.utcnow()
 ee_date = ee.Date(py_date)
 # print(ee_date)
-
 start_date = ee.Date(py_date - datetime.timedelta(days=150))
 end_date = ee_date
-geometry = data['features'][0]['geometry']
 
 
+# cloud masking function
 def mask_cloud_and_shadows(image):
     qa = image.select('QA60')
 
@@ -36,7 +37,7 @@ def mask_cloud_and_shadows(image):
 
     return image.updatemask(mask).divide(10000).copyProperties(image, ['system:time_start'])
 
-
+# NDVI function
 def add_NDVI(image):
     ndvi = image.normalizedDifference(['B8', 'B4']).rename('ndvi')
     ndvi02 = ndvi.gt(0.2)
@@ -80,33 +81,46 @@ def add_NDVI(image):
     image = image.addBands(b)
     return image
 
-# takes download url of a npy file and saves it as jpg
+# save as function: takes download url of a npy file and saves it as jpg
 def save_as_jpg(url, filename):
     array_file = urllib.request.urlretrieve(url, filename)
     img_array = np.load(array_file[0])
     img_jpg = Image.fromarray(img_array.astype(np.uint8))
     img_jpg.save(f'{ filename }.jpg')
 
+# download image collection for the whole range of dates
 collection = (ee.ImageCollection('COPERNICUS/S2')
               .filterDate(start_date, end_date)
               .filterBounds(geometry)
               .map(lambda image: image.clip(geometry))
               .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 1)))
 
+# select images from collection
 ndvi_collection = collection.map(add_NDVI)
 ndvi_img_start = ee.Image(ndvi_collection.toList(ndvi_collection.size()).get(0))
 ndvi_img_end = ee.Image(ndvi_collection.toList(ndvi_collection.size()).get(ndvi_collection.size().subtract(1)))
 
+# calculate difference between the two datasets
 decline_img = ndvi_img_start.select('thres').subtract(ndvi_img_end.select('thres'))
 growth_img = ndvi_img_end.select('thres').subtract(ndvi_img_start.select('thres'))
-#TODO export as jpg
+#TODO: export as jpg. We need to generate a JPG map in a d good resolution.
+# desired output is: 300DPI, A5, basemap google satellite without labels, increase and decrease overlays.
 
+# get the images from GEE? in from of URLS
 growth_url = growth_img.getDownloadURL({'format': 'NPY'})
-
 decline_url = decline_img.getDownloadURL({'format': 'NPY'})
 
+# save JPG's
 save_as_jpg(decline_url, 'decline')
 
+
+# TODO: if new data then do analysis condition
+# TODO: run analayis over the 4 data sets with the dynamic dates
+# TODO: save output maps and stats to disk but discard raw data
+# TODO: chart changes changes over time
+
+
+### SCRAP!!!!####
 # def format_function(table, row_id, col_id):
 #     rows = table.distinct(row_id)
 #     joined = ee.Join.saveAll('matches').apply(
