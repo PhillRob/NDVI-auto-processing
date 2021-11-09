@@ -8,7 +8,7 @@ import urllib
 
 # import FireHR for high resolution images; install of package only works on linux
 
-RED = (255, 0, 0)  # non essential todo: consisten var nameing camelCase or as you do for most with an underscore
+RED = (255, 0, 0)  # non essential todo: consistent variable names: camelCase or as you do for most with an under_score
 GREEN = (0, 255, 0)
 
 # ee.Authenticate()
