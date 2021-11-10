@@ -323,3 +323,32 @@ var centroid = geometry.first().geometry().centroid();
 //print()
 
 //Map.addLayer(plotImg, visualization, 'RGB');
+var vegStats = NDVIimcol.map(function(image) {
+    var date = image.get('system:time_start');//time_start
+    var name = image.get('name'); // time_start
+    var pixelArea = ee.Image.pixelArea();
+    var fixArea = 5961031705.843;
+    // ORG NDVI: 960329: 960352
+    // NDVI over full AOI
+    var ndvi = image.normalizedDifference(['B8', 'B4']).rename('ndvi');
+    image = image.addBands(ndvi);
+
+    //Thresholding 0.2
+    var ndvi02 = ndvi.gte(0.2).rename('ndvi02');
+    image = image.addBands(ndvi02).updateMask(ndvi02);
+
+    // NDVI area
+    var NDVIstats = image.select('ndvi02').reduceRegion({
+      reducer: ee.Reducer.count(),
+      geometry: studyarea,
+      scale: 10,
+      maxPixels: 1e29
+    });
+
+    var NDVIarea = ee.Number(NDVIstats.get('ndvi02')).multiply(100);
+
+    return ee.Feature(null, {
+        'NDVIarea': NDVIarea,
+        'name':name,
+        'system:time_start': date });
+      });
