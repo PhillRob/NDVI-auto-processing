@@ -3,12 +3,10 @@ import ee
 import datetime
 import json
 import sys
-import numpy as np
-from PIL import Image
-import urllib
 import folium
-import io
-# import FireHR for high resolution images; install of package only works on linux
+import selenium
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
+import time
 # get timeframe through command line arguments
 timeframe = 'nov_2016'
 RED = (255, 0, 0)
@@ -48,14 +46,10 @@ else:
 def mask_cloud_and_shadows(image):
     qa = image.select('QA60')
 
-    # Bits 10 and 11 are clouds and cirrus
-    cloud_bitmask = 1 << 10
-    cirrus_bitmask = 1 << 11
-
     # Both flags should be set to zero, indicating clear conditions
-    mask = qa.bitwiseAnd(cloud_bitmask).eq(0).And(qa.bitwiseAnd(cirrus_bitmask).eq(0))
+    clouds = qa.bitwiseAnd(1 << 10).Or(qa.bitwiseAnd(1 << 11))
 
-    return image.updatemask(mask).divide(10000).copyProperties(image, ['system:time_start'])
+    return image.updateMask(clouds.Not())
 
 # NDVI function
 def add_NDVI(image):
@@ -72,7 +66,7 @@ def add_NDVI(image):
         reducer=ee.Reducer.sum(),
         geometry=geometry,
         scale=10,
-        maxPixels=10**13
+        maxPixels=1e29
     )
 
     image = image.set(ndviStats)
@@ -100,38 +94,6 @@ def add_NDVI(image):
     image = image.addBands(thres)
     image = image.addBands(b)
     return image
-
-# save as function: takes download url of a npy file and saves it as jpg
-def save_as_jpg(url, filename):
-    array_file = urllib.request.urlretrieve(url, filename)
-    img_array = np.load(array_file[0])
-    img_jpg = Image.fromarray(img_array.astype(np.uint8))
-    img_jpg.save(f'{ filename }.jpg')
-
-def change_image_color_and_merge(images, colors):
-    img1 = Image.open(images[0])
-    img2 = Image.open(images[1])
-    img1 = img1.convert("RGB")
-    img2 = img2.convert("RGB")
-
-    data1 = img1.getdata()
-    data2 = img2.getdata()
-    new_image_data = []
-    for item1, item2 in zip(data1, data2):
-        # change all white (also shades of whites) pixels to yellow
-        if 190 < item1[0] < 256:
-            new_image_data.append(colors[0])
-        elif 190 < item2[0] < 256:
-            new_image_data.append(colors[1])
-        else:
-            new_image_data.append(item1)
-    # update image data
-    img1.putdata(new_image_data)
-
-    # show image in preview
-    # img1.show()
-
-    img1.save(f'growth_decline_{ timeframe }.jpg')
 
 def get_veg_stats(image):
     date = image.get('system:time_start')
@@ -166,8 +128,14 @@ collection = (ee.ImageCollection('COPERNICUS/S2')
               .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 1)))
 
 latest_image = ee.Image(collection.toList(collection.size()).get(collection.size().subtract(1)))
+first_image = ee.Image(collection.toList(collection.size()).get(0))
 latest_image_date = latest_image.date().format("YYYY-MM-dd").getInfo()
-new_report = False
+first_image_date = first_image.date().format("YYYY-MM-dd").getInfo()
+area_change = get_veg_stats(latest_image).getInfo()["properties"]["NDVIarea"] - get_veg_stats(first_image).getInfo()["properties"]["NDVIarea"]
+print(f'Change in vegetation area: {area_change}')
+print(f'First image: { first_image_date }\nLast image: { latest_image_date }')
+
+new_report = True
 # compare date of latest image with last recorded image
 # if there is new data it will set new_report to True
 json_file_name = 'data.json'
@@ -191,25 +159,16 @@ json_file_name = 'data.json'
 if new_report:
     # select images from collection
     ndvi_collection = collection.map(add_NDVI)
+    ndvi_collection = ndvi_collection.map(mask_cloud_and_shadows)
     ndvi_img_start = ee.Image(ndvi_collection.toList(ndvi_collection.size()).get(0))
     ndvi_img_end = ee.Image(ndvi_collection.toList(ndvi_collection.size()).get(ndvi_collection.size().subtract(1)))
 
     # calculate difference between the two datasets
-    # growth_img = ndvi_img_start.select('thres').subtract(ndvi_img_end.select('thres'))
-    # update mask  with eq(0)
-    decline_img = ndvi_img_end.select('thres').subtract(ndvi_img_start.select('thres'))
-    decline_img_mask = decline_img.neq(0)
-    decline_img = decline_img.updateMask(decline_img_mask)
-    # get the images from GEE? in from of URLS
-    # growth_url = growth_img.getDownloadURL({'format': 'NPY'})
-    decline_url = decline_img.getDownloadURL({'format': 'NPY'})
+    growth_decline_img = ndvi_img_end.select('thres').subtract(ndvi_img_start.select('thres'))
+    growth_decline_img_mask = growth_decline_img.neq(0)
+    growth_decline_img = growth_decline_img.updateMask(growth_decline_img_mask)
 
 
-    # save JPG's
-    save_as_jpg(decline_url, 'decline')
-    # save_as_jpg(growth_url, 'growth')
-    # change color of jpg's
-    change_image_color_and_merge(['growth.jpg', 'decline.jpg'], [(0, 255, 0), (255, 0, 0)])
 
 def add_ee_layer(self, ee_image_object, vis_params, name):
     """Adds a method for displaying Earth Engine image tiles to folium map."""
@@ -224,17 +183,10 @@ def add_ee_layer(self, ee_image_object, vis_params, name):
 growth_vis_params = {
     'palette': ['00FF00', 'FF0000']
 }
-# latest_image_viz_params = {
-#     'bands': ['B5', 'B4', 'B3'],
-#     'min': 0,
-#     'max': 0.5,
-#     'gamma': [0.95, 1.1, 1]
-# }
+
 # Add Earth Engine drawing method to folium.
 folium.Map.add_ee_layer = add_ee_layer
 
-# Define the center of our map.
-lat, lon = 24.67883191972247, 46.639354896561784
 basemaps = {
     'Google Maps': folium.TileLayer(
         tiles = 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
@@ -276,15 +228,26 @@ basemaps = {
 # TODO: Boundary of DQ to be added
 # TODO: Change resolution
 # TODO: Add statistics
-my_map = folium.Map(location=[lat, lon], zoom_start=14, width=750, height=500, control_scale=True, zoom_control=False)
+# Define the center of our map.
+lat, lon = 24.680753, 46.631094
+my_map = folium.Map(location=[lat, lon], zoom_start=16,control_scale=True, zoom_control=False)
 basemaps['Google Satellite'].add_to(my_map)
-my_map.add_ee_layer(decline_img, growth_vis_params, 'Growth')
-# my_map.add_ee_layer(latest_image, latest_image_viz_params, 'Growth')
-img_data = my_map._to_png(1)
-img = Image.open(io.BytesIO(img_data))
-# rgb_img = img.convert('RGB')
-img.save('map_growth_01.png')
+my_map.add_ee_layer(growth_decline_img, growth_vis_params, 'Growth and decline image')
+for each in geometry['coordinates'][0][0]:
+    folium.Marker(each).add_to(my_map)
+
+# add lines
+folium.PolyLine(geometry['coordinates'][0][0], color="red", weight=2.5, opacity=1).add_to(my_map)
+my_map.save('map.html')
 my_map
+
+options = FirefoxOptions()
+options.add_argument("--headless")
+driver = selenium.webdriver.Firefox(options=options)
+driver.set_window_size(2480, 1748)  # choose a resolution
+driver.get('file:///C:/Users/gilbe/PycharmProjects/NDVI-auto-processing/map.html')
+time.sleep(5)
+driver.save_screenshot('growth_decline.jpg')
 
 # TODO: if new data then do analysis condition
 # TODO: run analysis over the 4 data sets with the dynamic dates
@@ -293,6 +256,3 @@ my_map
 # TODO: export as jpg. We need to generate a JPG map in a d good resolution.
 # TODO: get scalebar
 # desired output is: 300DPI, A5, basemap google satellite without labels, increase and decrease overlays.
-
-basemaps['Google Maps'].add_to(my_map)
-
