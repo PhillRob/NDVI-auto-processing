@@ -7,8 +7,9 @@ import folium
 import selenium
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 import time
-# get timeframe through command line arguments
-timeframe = 'nov_2016'
+
+# get timeframe through command line arguments sys.argv[1]
+timeframe = 'one_year'
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 
@@ -28,9 +29,9 @@ ee_date = ee.Date(py_date)
 if timeframe == 'two_weeks':
     start_date = ee.Date(py_date - datetime.timedelta(days=14))
     end_date = ee_date
-elif timeframe =='one_year':
+elif timeframe == 'one_year':
     current_year = py_date.year
-    start_date = ee.Date(py_date.replace(year=current_year-1))
+    start_date = ee.Date(py_date.replace(year=current_year - 1))
     end_date = ee_date
 elif timeframe == 'nov_2016':
     start_date = ee.Date(py_date.replace(year=2016, month=11))
@@ -39,7 +40,7 @@ elif timeframe == 'july_2016':
     start_date = ee.Date(py_date.replace(year=2016, month=7))
     end_date = ee.Date(py_date.replace(month=7))
 else:
-    print(f'Command { timeframe } not found.')
+    print(f'Command {timeframe} not found.')
 
 
 # cloud masking function
@@ -50,6 +51,7 @@ def mask_cloud_and_shadows(image):
     clouds = qa.bitwiseAnd(1 << 10).Or(qa.bitwiseAnd(1 << 11))
 
     return image.updateMask(clouds.Not())
+
 
 # NDVI function
 def add_NDVI(image):
@@ -79,7 +81,7 @@ def add_NDVI(image):
         reducer=ee.Reducer.sum(),
         geometry=geometry,
         scale=10,
-        maxPixels=10**13
+        maxPixels=10 ** 13
     )
     image = image.set(img_stats)
 
@@ -94,6 +96,7 @@ def add_NDVI(image):
     image = image.addBands(thres)
     image = image.addBands(b)
     return image
+
 
 def get_veg_stats(image):
     date = image.get('system:time_start')
@@ -131,9 +134,10 @@ latest_image = ee.Image(collection.toList(collection.size()).get(collection.size
 first_image = ee.Image(collection.toList(collection.size()).get(0))
 latest_image_date = latest_image.date().format("YYYY-MM-dd").getInfo()
 first_image_date = first_image.date().format("YYYY-MM-dd").getInfo()
-area_change = get_veg_stats(latest_image).getInfo()["properties"]["NDVIarea"] - get_veg_stats(first_image).getInfo()["properties"]["NDVIarea"]
+area_change = get_veg_stats(latest_image).getInfo()["properties"]["NDVIarea"] - \
+              get_veg_stats(first_image).getInfo()["properties"]["NDVIarea"]
 print(f'Change in vegetation area: {area_change}')
-print(f'First image: { first_image_date }\nLast image: { latest_image_date }')
+print(f'First image: {first_image_date}\nLast image: {latest_image_date}')
 
 new_report = True
 # compare date of latest image with last recorded image
@@ -159,7 +163,7 @@ json_file_name = 'data.json'
 if new_report:
     # select images from collection
     ndvi_collection = collection.map(add_NDVI)
-    ndvi_collection = ndvi_collection.map(mask_cloud_and_shadows)
+    # ndvi_collection = ndvi_collection.map(mask_cloud_and_shadows)
     ndvi_img_start = ee.Image(ndvi_collection.toList(ndvi_collection.size()).get(0))
     ndvi_img_end = ee.Image(ndvi_collection.toList(ndvi_collection.size()).get(ndvi_collection.size().subtract(1)))
 
@@ -167,7 +171,7 @@ if new_report:
     growth_decline_img = ndvi_img_end.select('thres').subtract(ndvi_img_start.select('thres'))
     growth_decline_img_mask = growth_decline_img.neq(0)
     growth_decline_img = growth_decline_img.updateMask(growth_decline_img_mask)
-
+    cloud_vis_img = ndvi_img_end.select('QA60')
 
 
 def add_ee_layer(self, ee_image_object, vis_params, name):
@@ -180,6 +184,8 @@ def add_ee_layer(self, ee_image_object, vis_params, name):
         overlay=True,
         control=True
     ).add_to(self)
+
+
 growth_vis_params = {
     'palette': ['00FF00', 'FF0000']
 }
@@ -189,39 +195,39 @@ folium.Map.add_ee_layer = add_ee_layer
 
 basemaps = {
     'Google Maps': folium.TileLayer(
-        tiles = 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
-        attr = 'Google',
-        name = 'Google Maps',
-        overlay = True,
-        control = True
+        tiles='https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+        attr='Google',
+        name='Google Maps',
+        overlay=True,
+        control=True
     ),
     'Google Satellite': folium.TileLayer(
-        tiles = 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-        attr = 'Google',
-        name = 'Google Satellite',
-        overlay = True,
-        control = True
+        tiles='https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+        attr='Google',
+        name='Google Satellite',
+        overlay=True,
+        control=True
     ),
     'Google Terrain': folium.TileLayer(
-        tiles = 'https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',
-        attr = 'Google',
-        name = 'Google Terrain',
-        overlay = True,
-        control = True
+        tiles='https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',
+        attr='Google',
+        name='Google Terrain',
+        overlay=True,
+        control=True
     ),
     'Google Satellite Hybrid': folium.TileLayer(
-        tiles = 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
-        attr = 'Google',
-        name = 'Google Satellite',
-        overlay = True,
-        control = True
+        tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+        attr='Google',
+        name='Google Satellite',
+        overlay=True,
+        control=True
     ),
     'Esri Satellite': folium.TileLayer(
-        tiles = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-        attr = 'Esri',
-        name = 'Esri Satellite',
-        overlay = True,
-        control = True
+        tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        attr='Esri',
+        name='Esri Satellite',
+        overlay=True,
+        control=True
     )
 }
 
@@ -230,14 +236,12 @@ basemaps = {
 # TODO: Add statistics
 # Define the center of our map.
 lat, lon = 24.680753, 46.631094
-my_map = folium.Map(location=[lat, lon], zoom_start=16,control_scale=True, zoom_control=False)
+my_map = folium.Map(location=[lat, lon], zoom_start=16, control_scale=True, zoom_control=False)
 basemaps['Google Satellite'].add_to(my_map)
 my_map.add_ee_layer(growth_decline_img, growth_vis_params, 'Growth and decline image')
-for each in geometry['coordinates'][0][0]:
-    folium.Marker(each).add_to(my_map)
 
 # add lines
-folium.PolyLine(geometry['coordinates'][0][0], color="red", weight=2.5, opacity=1).add_to(my_map)
+folium.PolyLine([[x[1], x[0]] for x in geometry['coordinates'][0][0]], color="white", weight=5, opacity=1).add_to(my_map)
 my_map.save('map.html')
 my_map
 
