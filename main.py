@@ -3,15 +3,15 @@ import ee
 import datetime
 import json
 import sys
+from fpdf import FPDF
 import folium
 import selenium
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
-import time
 
 # get timeframe through command line arguments sys.argv[1]
 timeframe = 'one_year'
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
+IMAGE_WIDTH = 2480
+IMAGE_HEIGHT = 1748
 
 # ee.Authenticate()
 ee.Initialize()
@@ -134,31 +134,38 @@ latest_image = ee.Image(collection.toList(collection.size()).get(collection.size
 first_image = ee.Image(collection.toList(collection.size()).get(0))
 latest_image_date = latest_image.date().format("YYYY-MM-dd").getInfo()
 first_image_date = first_image.date().format("YYYY-MM-dd").getInfo()
-area_change = get_veg_stats(latest_image).getInfo()["properties"]["NDVIarea"] - \
-              get_veg_stats(first_image).getInfo()["properties"]["NDVIarea"]
+area_change = get_veg_stats(first_image).getInfo()["properties"]["NDVIarea"] - \
+              get_veg_stats(latest_image).getInfo()["properties"]["NDVIarea"]
 print(f'Change in vegetation area: {area_change}')
-print(f'First image: {first_image_date}\nLast image: {latest_image_date}')
+print(f'First image date: {first_image_date}\nLast image date: {latest_image_date}')
 
-new_report = True
+new_report = False
 # compare date of latest image with last recorded image
 # if there is new data it will set new_report to True
 json_file_name = 'data.json'
 
-# with open(json_file_name, 'r', encoding='utf-8')as f:
-#     date_data = json.load(f)
-#     if timeframe not in data:
-#         print('Timeframe not yet covered. Will be generated.')
-#         new_report = True
-#         date_data[timeframe] = latest_image_date
-#     elif datetime.datetime.strptime(latest_image_date, '%Y-%m-%d') > datetime.datetime.strptime(date_data[timeframe],'%Y-%m-%d'):
-#         print('New data. Updating File.')
-#         new_report = True
-#         date_data[timeframe] = latest_image_date
-#     else:
-#         print('No new data.')
-#
-# with open(json_file_name, 'w', encoding='utf-8') as f:
-#     json.dump(data, f)
+with open(json_file_name, 'r', encoding='utf-8')as f:
+    data = json.load(f)
+    if timeframe not in data:
+        print('Timeframe not yet covered. Will be generated.')
+        new_report = True
+        data[timeframe] = {'latest_image': latest_image_date,
+                           'first_image': first_image_date,
+                           'vegetation_area_change': area_change
+                           }
+    elif datetime.datetime.strptime(latest_image_date, '%Y-%m-%d') > datetime.datetime.strptime(data[timeframe]['latest_image'],'%Y-%m-%d'):
+        print('New data. Updating File.')
+        new_report = True
+        data[timeframe] = {'latest_image': latest_image_date,
+                           'first_image': first_image_date,
+                           'vegetation_area_change': area_change
+                           }
+    else:
+        print('No new data.')
+        sys.exit()
+
+with open(json_file_name, 'w', encoding='utf-8') as f:
+    json.dump(data, f)
 
 if new_report:
     # select images from collection
@@ -174,6 +181,7 @@ if new_report:
     cloud_vis_img = ndvi_img_end.select('QA60')
 
 
+
 def add_ee_layer(self, ee_image_object, vis_params, name):
     """Adds a method for displaying Earth Engine image tiles to folium map."""
     map_id_dict = ee.Image(ee_image_object).getMapId(vis_params)
@@ -184,7 +192,11 @@ def add_ee_layer(self, ee_image_object, vis_params, name):
         overlay=True,
         control=True
     ).add_to(self)
-
+# get the middle coordinate
+def get_mean_coord(coords):
+    first_val = [x[0] for x in coords]
+    second_val = [x[1] for x in coords]
+    return sum(first_val)/len(first_val), sum(second_val) / len(second_val)
 
 growth_vis_params = {
     'palette': ['00FF00', 'FF0000']
@@ -231,29 +243,39 @@ basemaps = {
     )
 }
 
-# TODO: Boundary of DQ to be added
-# TODO: Change resolution
 # TODO: Add statistics
-# Define the center of our map.
-lat, lon = 24.680753, 46.631094
-my_map = folium.Map(location=[lat, lon], zoom_start=16, control_scale=True, zoom_control=False)
+# swap out the coordinates because folium takes them the other way around
+swapped_coords = [[x[1], x[0]] for x in geometry['coordinates'][0][0]]
+# Define middle point of our map
+lat, lon = get_mean_coord(swapped_coords)
+my_map = folium.Map(location=[lat, lon], zoom_control=False)
 basemaps['Google Satellite'].add_to(my_map)
 my_map.add_ee_layer(growth_decline_img, growth_vis_params, 'Growth and decline image')
 
+# fit bounds for optimal zoom level
+my_map.fit_bounds(swapped_coords)
 # add lines
-folium.PolyLine([[x[1], x[0]] for x in geometry['coordinates'][0][0]], color="white", weight=5, opacity=1).add_to(my_map)
+folium.PolyLine(swapped_coords, color="white", weight=5, opacity=1).add_to(my_map)
 my_map.save('map.html')
 my_map
 
 options = FirefoxOptions()
 options.add_argument("--headless")
 driver = selenium.webdriver.Firefox(options=options)
+# for 300dpi a5 we need  2480x1748
 driver.set_window_size(2480, 1748)  # choose a resolution
 driver.get('file:///C:/Users/gilbe/PycharmProjects/NDVI-auto-processing/map.html')
-time.sleep(5)
 driver.save_screenshot('growth_decline.jpg')
 
-# TODO: if new data then do analysis condition
+#generate pdf
+pdf = FPDF(orientation='L')
+pdf.add_page()
+pdf.set_font("Arial", size=12)
+pdf.cell(10, 10, txt=f'Vegetation area change: { area_change }')
+pdf.image('growth_decline.jpg', x=10, y=20, w=IMAGE_WIDTH/10, h=IMAGE_HEIGHT/10)
+pdf.output("report.pdf")
+
+# TODO: remove clouds from calculation
 # TODO: run analysis over the 4 data sets with the dynamic dates
 # TODO: save output maps and stats to disk but discard raw data
 # TODO: chart changes changes over time
