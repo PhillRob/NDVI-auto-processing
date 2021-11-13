@@ -26,6 +26,7 @@ geometry = data['features'][0]['geometry']
 py_date = datetime.datetime.utcnow()
 ee_date = ee.Date(py_date)
 # print(ee_date)
+
 if timeframe == 'two_weeks':
     start_date = ee.Date(py_date - datetime.timedelta(days=14))
     end_date = ee_date
@@ -81,18 +82,18 @@ def add_NDVI(image):
         reducer=ee.Reducer.sum(),
         geometry=geometry,
         scale=10,
-        maxPixels=10 ** 13
+        maxPixels=10 ** 13 #TODO: low priority : use the same maxPixel value everywhere eg 1e29
     )
     image = image.set(img_stats)
 
     a = image.getNumber('ndvi02_area').divide(image.getNumber('area')).multiply(100)
     b = image.getNumber('ndvi02_area')
-
+    # TODO: low priority: refactor this is clunky and costly in terms of processing and storage. We do not need to have a band with a constant pixel value accorss the data set.
     rel_cover = image.select('B1').multiply(0).add(a).rename('rel_ndvi')
     image = image.addBands(rel_cover)
     image = image.addBands(ndvi)
 
-    thres = ndvi.gte(0.2).rename('thres')
+    thres = ndvi.gte(0.2).rename('thres') #TODO: low priority: clean up this is the same as on line 60
     image = image.addBands(thres)
     image = image.addBands(b)
     return image
@@ -101,8 +102,8 @@ def add_NDVI(image):
 def get_veg_stats(image):
     date = image.get('system:time_start')
     name = image.get('name')
-    pixelArea = ee.Image.pixelArea()
-    fixArea = 5961031705.843
+    pixelArea = ee.Image.pixelArea() #TODO: low priority:vars not used
+    fixArea = 5961031705.843 #TODO: low priority:vars not used
     ndvi = image.normalizedDifference(['B8', 'B4']).rename('ndvi')
     image = image.addBands(ndvi)
 
@@ -121,6 +122,7 @@ def get_veg_stats(image):
         'NDVIarea': NDVIarea,
         'name': name,
         'system:time_start': date})
+    # the above is better area stats. so something similar for the overall area in the add_NDVI function
 
 
 # download image collection for the whole range of dates
@@ -132,10 +134,13 @@ collection = (ee.ImageCollection('COPERNICUS/S2')
 
 latest_image = ee.Image(collection.toList(collection.size()).get(collection.size().subtract(1)))
 first_image = ee.Image(collection.toList(collection.size()).get(0))
+
 latest_image_date = latest_image.date().format("YYYY-MM-dd").getInfo()
 first_image_date = first_image.date().format("YYYY-MM-dd").getInfo()
+
 area_change = get_veg_stats(first_image).getInfo()["properties"]["NDVIarea"] - \
               get_veg_stats(latest_image).getInfo()["properties"]["NDVIarea"]
+
 print(f'Change in vegetation area: {area_change}')
 print(f'First image date: {first_image_date}\nLast image date: {latest_image_date}')
 
@@ -192,7 +197,10 @@ def add_ee_layer(self, ee_image_object, vis_params, name):
         overlay=True,
         control=True
     ).add_to(self)
+
 # get the middle coordinate
+## do you mean the centroids? so the center point of the AOI polygon? There may be a centroid function for this.
+
 def get_mean_coord(coords):
     first_val = [x[0] for x in coords]
     second_val = [x[1] for x in coords]
@@ -246,14 +254,17 @@ basemaps = {
 # TODO: Add statistics
 # swap out the coordinates because folium takes them the other way around
 swapped_coords = [[x[1], x[0]] for x in geometry['coordinates'][0][0]]
+
 # Define middle point of our map
 lat, lon = get_mean_coord(swapped_coords)
 my_map = folium.Map(location=[lat, lon], zoom_control=False)
 basemaps['Google Satellite'].add_to(my_map)
 my_map.add_ee_layer(growth_decline_img, growth_vis_params, 'Growth and decline image')
+# TODO: add scalebar
 
 # fit bounds for optimal zoom level
 my_map.fit_bounds(swapped_coords)
+
 # add lines
 folium.PolyLine(swapped_coords, color="white", weight=5, opacity=1).add_to(my_map)
 my_map.save('map.html')
@@ -262,12 +273,13 @@ my_map
 options = FirefoxOptions()
 options.add_argument("--headless")
 driver = selenium.webdriver.Firefox(options=options)
+
 # for 300dpi a5 we need  2480x1748
-driver.set_window_size(2480, 1748)  # choose a resolution
-driver.get('file:///C:/Users/gilbe/PycharmProjects/NDVI-auto-processing/map.html')
+driver.set_window_size(2480, 1748)  # choose a resolution #todo: you already set two vars WIDHT and HEIGHT at the top tof the script. Redundant?
+driver.get('file:///C:/Users/gilbe/PycharmProjects/NDVI-auto-processing/map.html') #todo: non dynamic path? this will not work when deployed.
 driver.save_screenshot('growth_decline.jpg')
 
-#generate pdf
+# generate pdf
 pdf = FPDF(orientation='L')
 pdf.add_page()
 pdf.set_font("Arial", size=12)
@@ -280,5 +292,4 @@ pdf.output("report.pdf")
 # TODO: save output maps and stats to disk but discard raw data
 # TODO: chart changes changes over time
 # TODO: export as jpg. We need to generate a JPG map in a d good resolution.
-# TODO: get scalebar
-# desired output is: 300DPI, A5, basemap google satellite without labels, increase and decrease overlays.
+
