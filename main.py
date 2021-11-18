@@ -8,13 +8,13 @@ from fpdf import FPDF
 import folium
 import selenium
 import time
-from send_email import *
 from os import listdir
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from pathlib import Path
 
 # get timeframe through command line arguments sys.argv[1]
-timeframe = 'one_year'
+timeframe = 'two_weeks'
+
 IMAGE_WIDTH = 2480
 IMAGE_HEIGHT = 1748
 
@@ -40,13 +40,14 @@ elif timeframe == 'one_year':
     start_date = ee.Date(py_date.replace(year=current_year - 1))
     end_date = ee_date
 elif timeframe == 'nov_2016':
-    start_date = ee.Date(py_date.replace(year=2016, month=11))
+    start_date = ee.Date(py_date.replace(year=2016, month=11, day=1))
     end_date = ee.Date(py_date.replace(month=11))
 elif timeframe == 'july_2016':
-    start_date = ee.Date(py_date.replace(year=2016, month=7))
+    start_date = ee.Date(py_date.replace(year=2016, month=7, day=1))
     end_date = ee.Date(py_date.replace(month=7))
 else:
     print(f'Command {timeframe} not found.')
+    sys.exit()
 
 
 # cloud masking function
@@ -168,14 +169,14 @@ with open(json_file_name, 'r', encoding='utf-8')as f:
         data[timeframe] = {'latest_image': latest_image_date,
                            'first_image': first_image_date,
                            'vegetation_area_change': area_change,
+                           'paths': []
                            }
     elif datetime.strptime(latest_image_date, '%Y-%m-%d') > datetime.strptime(data[timeframe]['latest_image'],'%Y-%m-%d'):
         print('New data. Updating File.')
         new_report = True
-        data[timeframe] = {'latest_image': latest_image_date,
-                           'first_image': first_image_date,
-                           'vegetation_area_change': area_change
-                           }
+        data[timeframe]['latest_image'] = latest_image_date
+        data[timeframe]['first_image'] = first_image_date
+        data[timeframe]['vegetation_area_change'] = area_change
     else:
         print('No new data.')
         sys.exit()
@@ -183,7 +184,6 @@ with open(json_file_name, 'r', encoding='utf-8')as f:
 if new_report:
     # select images from collection
     ndvi_collection = collection.map(add_NDVI)
-    # ndvi_collection = ndvi_collection.map(mask_cloud_and_shadows)
     ndvi_img_start = ee.Image(ndvi_collection.toList(ndvi_collection.size()).get(0))
     ndvi_img_end = ee.Image(ndvi_collection.toList(ndvi_collection.size()).get(ndvi_collection.size().subtract(1)))
 
@@ -192,6 +192,9 @@ if new_report:
     growth_decline_img_mask = growth_decline_img.neq(0)
     growth_decline_img = growth_decline_img.updateMask(growth_decline_img_mask)
     cloud_vis_img = ndvi_img_end.select('QA60')
+
+    polygon = ee.Geometry.Polygon(geometry['coordinates'][0][0])
+    project_area = round(polygon.area().getInfo())
 
 
 
@@ -205,14 +208,6 @@ def add_ee_layer(self, ee_image_object, vis_params, name):
         overlay=True,
         control=True,
     ).add_to(self)
-
-# get the middle coordinate
-## do you mean the centroids? so the center point of the AOI polygon? There may be a centroid function for this.
-
-def get_mean_coord(coords):
-    first_val = [x[0] for x in coords]
-    second_val = [x[1] for x in coords]
-    return sum(first_val)/len(first_val), sum(second_val) / len(second_val)
 
 growth_vis_params = {
     'min': -1,
@@ -304,9 +299,13 @@ driver.save_screenshot('growth_decline.jpg')
 pdf = FPDF(orientation='L')
 pdf.add_page()
 pdf.set_font("Arial", size=12)
-pdf.cell(10, 10, txt=f'Vegetation area change: { area_change } m²')
-pdf.cell(10, 20, txt=f'Relative change: {relative_change:.2f}')
-pdf.image('growth_decline.jpg', x=10, y=30, w=IMAGE_WIDTH/10, h=IMAGE_HEIGHT/10)
+pdf.image('growth_decline.jpg', x=10, y=10, w=IMAGE_WIDTH/10, h=IMAGE_HEIGHT/10)
+pdf.add_page()
+# pdf.cell(10, 10, txt=f'Project area: {project_area} m²')
+pdf.cell(10, 20, txt=f'Vegetation area at start date ({first_image_date}): {vegetation_start} m²')
+pdf.cell(10, 30, txt=f'Vegetation area at end date ({latest_image_date}): {vegetation_end} m²')
+pdf.cell(10, 40, txt=f'Vegetation area change: { area_change } m²')
+pdf.cell(10, 50, txt=f'Relative change: {relative_change:.2f}%')
 pdf_output_path = f"output/report_{geo_data['name']}_{ timeframe }_{ first_image_date }_{ latest_image_date }.pdf"
 pdf.output(pdf_output_path)
 
@@ -314,19 +313,12 @@ pdf.output(pdf_output_path)
 os.remove('growth_decline.jpg')
 os.remove('map.html')
 
-data[timeframe]['path'] = pdf_output_path
-
+data[timeframe]['paths'].append(pdf_output_path)
 with open(json_file_name, 'w', encoding='utf-8') as f:
     json.dump(data, f)
 
-#send email
-# script not commited because im not sure which informations are private
-# METROISSemail(True, pdf_output_path)
 
 # TODO: current dataset with dataset 2016
-# TODO: half transparent polygon 50 % opacity
 # TODO: remove clouds from calculation
 # TODO: run analysis over the 4 data sets with the dynamic dates
-# TODO: save output maps and stats to disk but discard raw data
 # TODO: chart changes changes over time
-# TODO: export as jpg. We need to generate a JPG map in a d good resolution.
