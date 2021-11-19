@@ -13,7 +13,7 @@ from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from pathlib import Path
 
 # get timeframe through command line arguments sys.argv[1]
-timeframe = 'one_year'
+timeframe = sys.argv[1]
 
 IMAGE_WIDTH = 2480
 IMAGE_HEIGHT = 1748
@@ -158,9 +158,6 @@ vegetation_share_change = vegetation_share_end - vegetation_share_start
 if area_change < 0:
     relative_change = -relative_change
 
-print(f'Change in vegetation area: {area_change}')
-print(f'First image date: {first_image_date}\nLast image date: {latest_image_date}')
-
 new_report = False
 # compare date of latest image with last recorded image
 # if there is new data it will set new_report to True
@@ -209,6 +206,9 @@ def add_ee_layer(self, ee_image_object, vis_params, name):
         overlay=True,
         control=True,
     ).add_to(self)
+
+# Add Earth Engine drawing method to folium.
+folium.Map.add_ee_layer = add_ee_layer
 
 growth_vis_params = {
     'min': -1,
@@ -274,9 +274,6 @@ basemaps['Google Satellite'].add_to(my_map)
 folium.PolyLine(swapped_coords, color="white", weight=5, opacity=1).add_to(my_map)
 folium.Choropleth(geo_data=geometry, fill_opacity=0.5, fill_color='#FFFFFF').add_to(my_map)
 
-# Add Earth Engine drawing method to folium.
-folium.Map.add_ee_layer = add_ee_layer
-
 my_map.add_ee_layer(growth_decline_img, growth_vis_params, 'Growth and decline image')
 
 # fit bounds for optimal zoom level
@@ -301,26 +298,25 @@ pdf = FPDF(orientation='L')
 pdf.add_page()
 pdf.set_font("Arial", size=12)
 pdf.image('growth_decline.jpg', x=10, y=10, w=IMAGE_WIDTH/10, h=IMAGE_HEIGHT/10)
-pdf.add_page()
-pdf.cell(txt=f'Project area: {project_area} m²', ln=1)
-pdf.cell(w=10, ln=1)
-pdf.cell(txt=f'Vegetation area at start date ({ee.Date(first_image_date).format("dd.MM.YYYY").getInfo()}): {vegetation_start:,} m²', ln=1)
-pdf.cell(w=10, ln=1)
-pdf.cell(txt=f'Vegetation area at start date ({ee.Date(first_image_date).format("dd.MM.YYYY").getInfo()}) relative to the project area: {vegetation_share_start:.2f}%', ln=1)
-pdf.cell(w=10, ln=1)
-pdf.cell(txt=f'Vegetation area at end date ({ee.Date(latest_image_date).format("dd.MM.YYYY").getInfo()}): {vegetation_end:,} m²', ln=1)
-pdf.cell(w=10, ln=1)
-pdf.cell(txt=f'Vegetation area at end date ({ee.Date(first_image_date).format("dd.MM.YYYY").getInfo()}) relative to the project area: {vegetation_share_end:.2f}%', ln=1)
-pdf.cell(w=10, ln=1)
-pdf.cell(txt=f'Vegetation area change: {area_change:,} m²', ln=1)
-pdf.cell(w=10, ln=1)
-pdf.cell(txt=f'Relative change: {relative_change:.2f}%', ln=1)
 pdf_output_path = f"output/report_{geo_data['name']}_{ timeframe }_{ first_image_date }_{ latest_image_date }.pdf"
 pdf.output(pdf_output_path)
 
 # discard temporary data
 os.remove('growth_decline.jpg')
 os.remove('map.html')
+
+
+data[timeframe]['first_image_date'] = ee.Date(first_image_date).format("dd.MM.YYYY").getInfo()
+data[timeframe]['latest_image_date'] = ee.Date(latest_image_date).format("dd.MM.YYYY").getInfo()
+data[timeframe]['vegetation_start'] = vegetation_start
+data[timeframe]['vegetation_end'] = vegetation_end
+data[timeframe]['vegetation_share_start'] = vegetation_share_start
+data[timeframe]['vegetation_share_end'] = vegetation_share_end
+data[timeframe]['vegetation_share_change'] = vegetation_share_change
+data[timeframe]['project_area'] = project_area
+data[timeframe]['area_change'] = area_change
+data[timeframe]['relative_change'] = relative_change
+data[timeframe]['project_name'] = geo_data['name']
 
 data[timeframe]['paths'].append(pdf_output_path)
 with open(json_file_name, 'w', encoding='utf-8') as f:
