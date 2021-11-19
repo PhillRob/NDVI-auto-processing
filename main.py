@@ -13,7 +13,7 @@ from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from pathlib import Path
 
 # get timeframe through command line arguments sys.argv[1]
-timeframe = 'two_weeks'
+timeframe = 'one_year'
 
 IMAGE_WIDTH = 2480
 IMAGE_HEIGHT = 1748
@@ -144,12 +144,17 @@ first_image = ee.Image(collection.toList(collection.size()).get(0))
 latest_image_date = latest_image.date().format("YYYY-MM-dd").getInfo()
 first_image_date = first_image.date().format("YYYY-MM-dd").getInfo()
 
-# TODO: vegetation change not right
-# TODO: relative vegetation change
+polygon = ee.Geometry.Polygon(geometry['coordinates'][0][0])
+project_area = round(polygon.area().getInfo())
+
 vegetation_start = get_veg_stats(first_image).getInfo()["properties"]["NDVIarea"]
 vegetation_end = get_veg_stats(latest_image).getInfo()["properties"]["NDVIarea"]
 area_change = vegetation_end - vegetation_start
 relative_change = 100 - (vegetation_end/vegetation_start) * 100
+vegetation_share_start = (vegetation_start/project_area) * 100
+vegetation_share_end = (vegetation_end/project_area) * 100
+vegetation_share_change = vegetation_share_end - vegetation_share_start
+
 if area_change < 0:
     relative_change = -relative_change
 
@@ -192,10 +197,6 @@ if new_report:
     growth_decline_img_mask = growth_decline_img.neq(0)
     growth_decline_img = growth_decline_img.updateMask(growth_decline_img_mask)
     cloud_vis_img = ndvi_img_end.select('QA60')
-
-    polygon = ee.Geometry.Polygon(geometry['coordinates'][0][0])
-    project_area = round(polygon.area().getInfo())
-
 
 
 def add_ee_layer(self, ee_image_object, vis_params, name):
@@ -301,11 +302,19 @@ pdf.add_page()
 pdf.set_font("Arial", size=12)
 pdf.image('growth_decline.jpg', x=10, y=10, w=IMAGE_WIDTH/10, h=IMAGE_HEIGHT/10)
 pdf.add_page()
-# pdf.cell(10, 10, txt=f'Project area: {project_area} m²')
-pdf.cell(10, 20, txt=f'Vegetation area at start date ({first_image_date}): {vegetation_start} m²')
-pdf.cell(10, 30, txt=f'Vegetation area at end date ({latest_image_date}): {vegetation_end} m²')
-pdf.cell(10, 40, txt=f'Vegetation area change: { area_change } m²')
-pdf.cell(10, 50, txt=f'Relative change: {relative_change:.2f}%')
+pdf.cell(txt=f'Project area: {project_area} m²', ln=1)
+pdf.cell(w=10, ln=1)
+pdf.cell(txt=f'Vegetation area at start date ({ee.Date(first_image_date).format("dd.MM.YYYY").getInfo()}): {vegetation_start:,} m²', ln=1)
+pdf.cell(w=10, ln=1)
+pdf.cell(txt=f'Vegetation area at start date ({ee.Date(first_image_date).format("dd.MM.YYYY").getInfo()}) relative to the project area: {vegetation_share_start:.2f}%', ln=1)
+pdf.cell(w=10, ln=1)
+pdf.cell(txt=f'Vegetation area at end date ({ee.Date(latest_image_date).format("dd.MM.YYYY").getInfo()}): {vegetation_end:,} m²', ln=1)
+pdf.cell(w=10, ln=1)
+pdf.cell(txt=f'Vegetation area at end date ({ee.Date(first_image_date).format("dd.MM.YYYY").getInfo()}) relative to the project area: {vegetation_share_end:.2f}%', ln=1)
+pdf.cell(w=10, ln=1)
+pdf.cell(txt=f'Vegetation area change: {area_change:,} m²', ln=1)
+pdf.cell(w=10, ln=1)
+pdf.cell(txt=f'Relative change: {relative_change:.2f}%', ln=1)
 pdf_output_path = f"output/report_{geo_data['name']}_{ timeframe }_{ first_image_date }_{ latest_image_date }.pdf"
 pdf.output(pdf_output_path)
 
