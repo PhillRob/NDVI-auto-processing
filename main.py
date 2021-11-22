@@ -12,8 +12,6 @@ from os import listdir
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from pathlib import Path
 
-# get timeframe through command line arguments sys.argv[1]
-timeframe = sys.argv[1]
 
 IMAGE_WIDTH = 2480
 IMAGE_HEIGHT = 1748
@@ -27,27 +25,28 @@ with open('DQ.geojson') as f:
     geo_data = json.load(f)
 geometry = geo_data['features'][0]['geometry']
 
+
 ## set dates for analysis
 py_date = datetime.utcnow()
 ee_date = ee.Date(py_date)
 # print(ee_date)
+start_date = ee.Date(py_date.replace(year=2016, month=7, day=1))
+end_date = ee_date
 
-if timeframe == 'two_weeks':
-    start_date = ee.Date(py_date - timedelta(days=14))
-    end_date = ee_date
-elif timeframe == 'one_year':
-    current_year = py_date.year
-    start_date = ee.Date(py_date.replace(year=current_year - 1))
-    end_date = ee_date
-elif timeframe == 'nov_2016':
-    start_date = ee.Date(py_date.replace(year=2016, month=11, day=1))
-    end_date = ee.Date(py_date.replace(month=11))
-elif timeframe == 'july_2016':
-    start_date = ee.Date(py_date.replace(year=2016, month=7, day=1))
-    end_date = ee.Date(py_date.replace(month=7))
-else:
-    print(f'Command {timeframe} not found.')
-    sys.exit()
+
+july_2016_end = ee.Date(py_date.replace(month=7))
+
+timeframes = {
+    'two_weeks':
+                   {'start_date': (ee.Date(py_date - timedelta(days=14))),
+                    'end_date':end_date},
+              'one_year': {'start_date': ee.Date(py_date.replace(year=py_date.year - 1)),
+                            'end_date': end_date},
+              'nov_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=11, day=1)),
+                            'end_date': ee.Date(py_date.replace(month=11))},
+              'july_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=7, day=1)),
+                            'end_date': ee.Date(py_date.replace(month=7))}
+}
 
 
 # cloud masking function
@@ -131,71 +130,6 @@ def get_veg_stats(image):
     # the above is better area stats. so something similar for the overall area in the add_NDVI function
 
 
-# download image collection for the whole range of dates
-collection = (ee.ImageCollection('COPERNICUS/S2')
-              .filterDate(start_date, end_date)
-              .filterBounds(geometry)
-              .map(lambda image: image.clip(geometry))
-              .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 1)))
-
-latest_image = ee.Image(collection.toList(collection.size()).get(collection.size().subtract(1)))
-first_image = ee.Image(collection.toList(collection.size()).get(0))
-
-latest_image_date = latest_image.date().format("YYYY-MM-dd").getInfo()
-first_image_date = first_image.date().format("YYYY-MM-dd").getInfo()
-
-polygon = ee.Geometry.Polygon(geometry['coordinates'][0][0])
-project_area = round(polygon.area().getInfo())
-
-vegetation_start = get_veg_stats(first_image).getInfo()["properties"]["NDVIarea"]
-vegetation_end = get_veg_stats(latest_image).getInfo()["properties"]["NDVIarea"]
-area_change = vegetation_end - vegetation_start
-relative_change = 100 - (vegetation_end/vegetation_start) * 100
-vegetation_share_start = (vegetation_start/project_area) * 100
-vegetation_share_end = (vegetation_end/project_area) * 100
-vegetation_share_change = vegetation_share_end - vegetation_share_start
-
-if area_change < 0:
-    relative_change = -relative_change
-
-new_report = False
-# compare date of latest image with last recorded image
-# if there is new data it will set new_report to True
-json_file_name = 'data.json'
-
-with open(json_file_name, 'r', encoding='utf-8')as f:
-    data = json.load(f)
-    if timeframe not in data:
-        print('Timeframe not yet covered. Will be generated.')
-        new_report = True
-        data[timeframe] = {'latest_image': latest_image_date,
-                           'first_image': first_image_date,
-                           'vegetation_area_change': area_change,
-                           'paths': []
-                           }
-    elif datetime.strptime(latest_image_date, '%Y-%m-%d') > datetime.strptime(data[timeframe]['latest_image'],'%Y-%m-%d'):
-        print('New data. Updating File.')
-        new_report = True
-        data[timeframe]['latest_image'] = latest_image_date
-        data[timeframe]['first_image'] = first_image_date
-        data[timeframe]['vegetation_area_change'] = area_change
-    else:
-        print('No new data.')
-        sys.exit()
-
-if new_report:
-    # select images from collection
-    ndvi_collection = collection.map(add_NDVI)
-    ndvi_img_start = ee.Image(ndvi_collection.toList(ndvi_collection.size()).get(0))
-    ndvi_img_end = ee.Image(ndvi_collection.toList(ndvi_collection.size()).get(ndvi_collection.size().subtract(1)))
-
-    # calculate difference between the two datasets
-    growth_decline_img = ndvi_img_end.select('thres').subtract(ndvi_img_start.select('thres'))
-    growth_decline_img_mask = growth_decline_img.neq(0)
-    growth_decline_img = growth_decline_img.updateMask(growth_decline_img_mask)
-    cloud_vis_img = ndvi_img_end.select('QA60')
-
-
 def add_ee_layer(self, ee_image_object, vis_params, name):
     """Adds a method for displaying Earth Engine image tiles to folium map."""
     map_id_dict = ee.Image(ee_image_object).getMapId(vis_params)
@@ -258,69 +192,140 @@ basemaps = {
     )
 }
 
-# TODO: Add statistics
+# download image collection for the whole range of dates
+collection = (ee.ImageCollection('COPERNICUS/S2')
+              .filterDate(start_date, end_date)
+              .filterBounds(geometry)
+              .map(lambda image: image.clip(geometry))
+              .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 1)))
+print('Generating NDVI')
+# select images from collection
+ndvi_collection = collection.map(add_NDVI)
 
-# Define middle point of our map
-html_map = 'map.html'
-
-centroid = ee.Geometry(geometry).centroid().getInfo()['coordinates']
-# get coordinates from centroid for folium
-lat, lon = centroid[1], centroid[0]
-
-my_map = folium.Map(location=[lat, lon], zoom_control=False, control_scale=True)
-
-basemaps['Google Satellite'].add_to(my_map)
-
-folium.PolyLine(swapped_coords, color="white", weight=5, opacity=1).add_to(my_map)
-folium.Choropleth(geo_data=geometry, fill_opacity=0.5, fill_color='#FFFFFF').add_to(my_map)
-
-my_map.add_ee_layer(growth_decline_img, growth_vis_params, 'Growth and decline image')
-
-# fit bounds for optimal zoom level
-my_map.fit_bounds(swapped_coords)
-
-my_map.save(html_map)
-my_map
-
-options = FirefoxOptions()
-options.add_argument("--headless")
-driver = selenium.webdriver.Firefox(options=options)
-
-# for 300dpi a5 we need  2480x1748
-driver.set_window_size(IMAGE_WIDTH, IMAGE_HEIGHT)
-driver.get('file:///' + os.path.dirname(os.path.abspath('map.html')) + '\\map.html')
-# wait for html to load
-time.sleep(3)
-driver.save_screenshot('growth_decline.jpg')
-
-# generate pdf
+pdf_output_path = f"output/vegetation_report_{geo_data['name']}.pdf"
 pdf = FPDF(orientation='L')
-pdf.add_page()
-pdf.set_font("Arial", size=12)
-pdf.image('growth_decline.jpg', x=10, y=10, w=IMAGE_WIDTH/10, h=IMAGE_HEIGHT/10)
-pdf_output_path = f"output/report_{geo_data['name']}_{ timeframe }_{ first_image_date }_{ latest_image_date }.pdf"
+pdf.compress = True
+for timeframe in timeframes:
+    timeframe_collection = collection.filterDate(timeframes[timeframe]['start_date'], timeframes[timeframe]['end_date'])
+    ndvi_timeframe_collection = timeframe_collection.map(add_NDVI)
+    ndvi_img_start = ee.Image(ndvi_timeframe_collection.toList(ndvi_timeframe_collection.size()).get(0))
+    ndvi_img_end = ee.Image(ndvi_timeframe_collection.toList(ndvi_timeframe_collection.size()).get(ndvi_timeframe_collection.size().subtract(1)))
+
+
+    latest_image = ee.Image(timeframe_collection.toList(timeframe_collection.size()).get(timeframe_collection.size().subtract(1)))
+    first_image = ee.Image(timeframe_collection.toList(timeframe_collection.size()).get(0))
+
+    latest_image_date = latest_image.date().format("YYYY-MM-dd").getInfo()
+    first_image_date = first_image.date().format("YYYY-MM-dd").getInfo()
+
+    polygon = ee.Geometry.Polygon(geometry['coordinates'][0][0])
+    project_area = round(polygon.area().getInfo())
+
+    vegetation_start = get_veg_stats(first_image).getInfo()["properties"]["NDVIarea"]
+    vegetation_end = get_veg_stats(latest_image).getInfo()["properties"]["NDVIarea"]
+    area_change = vegetation_end - vegetation_start
+    relative_change = 100 - (vegetation_end/vegetation_start) * 100
+    vegetation_share_start = (vegetation_start/project_area) * 100
+    vegetation_share_end = (vegetation_end/project_area) * 100
+    vegetation_share_change = vegetation_share_end - vegetation_share_start
+
+    # calculate difference between the two datasets
+    growth_decline_img = ndvi_img_end.select('thres').subtract(ndvi_img_start.select('thres'))
+    growth_decline_img_mask = growth_decline_img.neq(0)
+    growth_decline_img = growth_decline_img.updateMask(growth_decline_img_mask)
+
+    if area_change < 0:
+        relative_change = -relative_change
+
+    new_report = False
+    # compare date of latest image with last recorded image
+    # if there is new data it will set new_report to True
+    json_file_name = 'data.json'
+
+    with open(json_file_name, 'r', encoding='utf-8')as f:
+        data = json.load(f)
+        if timeframe not in data.keys():
+            print(f'Timeframe {timeframe} not yet covered. Will be generated.')
+            new_report = True
+            data[timeframe] = {}
+            data[timeframe]['start_date'] = timeframes[timeframe]['start_date'].format("YYYY-MM-dd").getInfo()
+            data[timeframe]['end_date'] = timeframes[timeframe]['end_date'].format("YYYY-MM-dd").getInfo()
+            data[timeframe]['vegetation_start'] = vegetation_start
+            data[timeframe]['vegetation_end'] = vegetation_end
+            data[timeframe]['vegetation_share_start'] = vegetation_share_start
+            data[timeframe]['vegetation_share_end'] = vegetation_share_end
+            data[timeframe]['vegetation_share_change'] = vegetation_share_change
+            data[timeframe]['project_area'] = project_area
+            data[timeframe]['area_change'] = area_change
+            data[timeframe]['relative_change'] = relative_change
+            data[timeframe]['project_name'] = geo_data['name']
+
+        elif datetime.strptime(latest_image_date, '%Y-%m-%d') > datetime.strptime(data[timeframe]['end_date'],'%Y-%m-%d'):
+            print('New data. Updating File.')
+            new_report = True
+            data[timeframe]['end_date'] = latest_image_date.format("YYYY-MM-dd").getInfo()
+            data[timeframe]['start_date'] = first_image_date.format("YYYY-MM-dd").getInfo()
+            data[timeframe]['vegetation_start'] = vegetation_start
+            data[timeframe]['vegetation_end'] = vegetation_end
+            data[timeframe]['vegetation_share_start'] = vegetation_share_start
+            data[timeframe]['vegetation_share_end'] = vegetation_share_end
+            data[timeframe]['vegetation_share_change'] = vegetation_share_change
+            data[timeframe]['project_area'] = project_area
+            data[timeframe]['area_change'] = area_change
+            data[timeframe]['relative_change'] = relative_change
+            data[timeframe]['project_name'] = geo_data['name']
+
+    data['path'] = pdf_output_path
+    with open(json_file_name, 'w', encoding='utf-8') as f:
+        json.dump(data, f)
+
+    # TODO: Add statistics
+
+    # Define middle point of our map
+    if new_report:
+        html_map = 'map.html'
+
+        centroid = ee.Geometry(geometry).centroid().getInfo()['coordinates']
+        # get coordinates from centroid for folium
+        lat, lon = centroid[1], centroid[0]
+
+        my_map = folium.Map(location=[lat, lon], zoom_control=False, control_scale=True)
+
+        basemaps['Google Satellite'].add_to(my_map)
+
+        folium.PolyLine(swapped_coords, color="white", weight=5, opacity=1).add_to(my_map)
+        folium.Choropleth(geo_data=geometry, fill_opacity=0.5, fill_color='#FFFFFF').add_to(my_map)
+
+        my_map.add_ee_layer(growth_decline_img, growth_vis_params, 'Growth and decline image')
+
+        # fit bounds for optimal zoom level
+        my_map.fit_bounds(swapped_coords)
+
+        my_map.save(html_map)
+        my_map
+
+        options = FirefoxOptions()
+        options.add_argument("--headless")
+        driver = selenium.webdriver.Firefox(options=options)
+
+        screenshot_save_name = f'growth_decline.jpg'
+        # for 300dpi a5 we need  2480x1748
+        driver.set_window_size(IMAGE_WIDTH, IMAGE_HEIGHT)
+        driver.get('file:///' + os.path.dirname(os.path.abspath('map.html')) + '\\map.html')
+        # wait for html to load
+        time.sleep(3)
+        driver.save_screenshot(screenshot_save_name)
+
+        # generate pdf
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        pdf.image(screenshot_save_name, x=10, y=10, w=IMAGE_WIDTH/10, h=IMAGE_HEIGHT/10)
+        # discard temporary data
+        os.remove(screenshot_save_name)
+        os.remove('map.html')
 pdf.output(pdf_output_path)
+# data[timeframe]['paths'].append(pdf_output_path)
 
-# discard temporary data
-os.remove('growth_decline.jpg')
-os.remove('map.html')
-
-
-data[timeframe]['first_image_date'] = ee.Date(first_image_date).format("dd.MM.YYYY").getInfo()
-data[timeframe]['latest_image_date'] = ee.Date(latest_image_date).format("dd.MM.YYYY").getInfo()
-data[timeframe]['vegetation_start'] = vegetation_start
-data[timeframe]['vegetation_end'] = vegetation_end
-data[timeframe]['vegetation_share_start'] = vegetation_share_start
-data[timeframe]['vegetation_share_end'] = vegetation_share_end
-data[timeframe]['vegetation_share_change'] = vegetation_share_change
-data[timeframe]['project_area'] = project_area
-data[timeframe]['area_change'] = area_change
-data[timeframe]['relative_change'] = relative_change
-data[timeframe]['project_name'] = geo_data['name']
-
-data[timeframe]['paths'].append(pdf_output_path)
-with open(json_file_name, 'w', encoding='utf-8') as f:
-    json.dump(data, f)
 
 
 # TODO: current dataset with dataset 2016
