@@ -13,8 +13,8 @@ from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from pathlib import Path
 
 
-IMAGE_WIDTH = 2480
-IMAGE_HEIGHT = 1748
+IMAGE_WIDTH = 1000
+IMAGE_HEIGHT = 1000
 
 # ee.Authenticate()
 ee.Initialize()
@@ -202,9 +202,7 @@ print('Generating NDVI')
 # select images from collection
 ndvi_collection = collection.map(add_NDVI)
 
-pdf_output_path = f"output/vegetation_report_{geo_data['name']}.pdf"
-pdf = FPDF(orientation='L')
-pdf.compress = True
+image_list = []
 for timeframe in timeframes:
     timeframe_collection = collection.filterDate(timeframes[timeframe]['start_date'], timeframes[timeframe]['end_date'])
     ndvi_timeframe_collection = timeframe_collection.map(add_NDVI)
@@ -215,8 +213,8 @@ for timeframe in timeframes:
     latest_image = ee.Image(timeframe_collection.toList(timeframe_collection.size()).get(timeframe_collection.size().subtract(1)))
     first_image = ee.Image(timeframe_collection.toList(timeframe_collection.size()).get(0))
 
-    latest_image_date = latest_image.date().format("YYYY-MM-dd").getInfo()
-    first_image_date = first_image.date().format("YYYY-MM-dd").getInfo()
+    latest_image_date = latest_image.date().format("dd.MM.YYYY").getInfo()
+    first_image_date = first_image.date().format("dd.MM.YYYY").getInfo()
 
     polygon = ee.Geometry.Polygon(geometry['coordinates'][0][0])
     project_area = round(polygon.area().getInfo())
@@ -241,45 +239,43 @@ for timeframe in timeframes:
     # compare date of latest image with last recorded image
     # if there is new data it will set new_report to True
     json_file_name = 'data.json'
-
+    screenshot_save_name = f'../output/growth_decline_{timeframe}.png'
     with open(json_file_name, 'r', encoding='utf-8')as f:
         data = json.load(f)
         if timeframe not in data.keys():
             print(f'Timeframe {timeframe} not yet covered. Will be generated.')
             new_report = True
             data[timeframe] = {}
-            data[timeframe]['start_date'] = timeframes[timeframe]['start_date'].format("YYYY-MM-dd").getInfo()
-            data[timeframe]['end_date'] = timeframes[timeframe]['end_date'].format("YYYY-MM-dd").getInfo()
+            data[timeframe]['start_date'] = timeframes[timeframe]['start_date'].format("dd.MM.YYYY").getInfo()
+            data[timeframe]['end_date'] = timeframes[timeframe]['end_date'].format("dd.MM.YYYY").getInfo()
             data[timeframe]['vegetation_start'] = vegetation_start
             data[timeframe]['vegetation_end'] = vegetation_end
             data[timeframe]['vegetation_share_start'] = vegetation_share_start
             data[timeframe]['vegetation_share_end'] = vegetation_share_end
             data[timeframe]['vegetation_share_change'] = vegetation_share_change
-            data[timeframe]['project_area'] = project_area
+            data[timeframe]['project_area'] = project_area/(1000*1000)
             data[timeframe]['area_change'] = area_change
             data[timeframe]['relative_change'] = relative_change
+            data[timeframe]['path'] = screenshot_save_name
             data[timeframe]['project_name'] = geo_data['name']
 
         elif datetime.strptime(latest_image_date, '%Y-%m-%d') > datetime.strptime(data[timeframe]['end_date'],'%Y-%m-%d'):
             print('New data. Updating File.')
             new_report = True
-            data[timeframe]['end_date'] = latest_image_date.format("YYYY-MM-dd").getInfo()
-            data[timeframe]['start_date'] = first_image_date.format("YYYY-MM-dd").getInfo()
+            data[timeframe]['end_date'] = latest_image_date.format("dd.MM.YYYY").getInfo()
+            data[timeframe]['start_date'] = first_image_date.format("dd.MM.YYYY").getInfo()
             data[timeframe]['vegetation_start'] = vegetation_start
             data[timeframe]['vegetation_end'] = vegetation_end
             data[timeframe]['vegetation_share_start'] = vegetation_share_start
             data[timeframe]['vegetation_share_end'] = vegetation_share_end
             data[timeframe]['vegetation_share_change'] = vegetation_share_change
-            data[timeframe]['project_area'] = project_area
+            data[timeframe]['project_area'] = project_area/(1000*1000)
             data[timeframe]['area_change'] = area_change
             data[timeframe]['relative_change'] = relative_change
+            data[timeframe]['path'] = screenshot_save_name
             data[timeframe]['project_name'] = geo_data['name']
-
-    data['path'] = pdf_output_path
     with open(json_file_name, 'w', encoding='utf-8') as f:
         json.dump(data, f)
-
-    # TODO: Add statistics
 
     # Define middle point of our map
     if new_report:
@@ -308,27 +304,18 @@ for timeframe in timeframes:
         options.add_argument("--headless")
         driver = selenium.webdriver.Firefox(options=options)
 
-        screenshot_save_name = f'growth_decline.jpg'
         # for 300dpi a5 we need  2480x1748
         driver.set_window_size(IMAGE_WIDTH, IMAGE_HEIGHT)
         driver.get('file:///' + os.path.dirname(os.path.abspath('map.html')) + '\\map.html')
         # wait for html to load
         time.sleep(3)
         driver.save_screenshot(screenshot_save_name)
-
-        # generate pdf
-        pdf.add_page()
-        pdf.set_font("Arial", size=12)
-        pdf.image(screenshot_save_name, x=10, y=10, w=IMAGE_WIDTH/10, h=IMAGE_HEIGHT/10)
+        image_list.append(screenshot_save_name)
         # discard temporary data
-        os.remove(screenshot_save_name)
         os.remove('map.html')
-pdf.output(pdf_output_path)
-# data[timeframe]['paths'].append(pdf_output_path)
 
 
 
 # TODO: current dataset with dataset 2016
 # TODO: remove clouds from calculation
-# TODO: run analysis over the 4 data sets with the dynamic dates
 # TODO: chart changes changes over time

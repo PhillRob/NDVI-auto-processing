@@ -6,11 +6,9 @@ import gc
 import logging
 import math
 import smtplib
-import time
+
 import json
 import ee
-from collections import Counter
-from datetime import datetime, timedelta
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -19,7 +17,6 @@ from email import encoders
 from pathlib import Path
 
 from fulcrum import Fulcrum
-
 
 # fulcrum vars BPLA
 urlBase = 'https://api.fulcrumapp.com/api/v2/'
@@ -30,23 +27,24 @@ logging.basicConfig(filename='fulcrum-monthly-mailer.log', level=logging.DEBUG)
 
 # general smtp mailer vars
 fromaddr = "mailer@bp-la.com"
-sendtest = False
+sendtest = True
 recordsPerPage = 5000
 
 ee.Initialize()
+
 
 # Metro
 ## Issue Log
 def METROISSemail(test, project_data):
     ####GILBERT: THIS IS JUST THE GET DATA AND RUN SUMMARY STATS PART WHICH POPUlATES VARS USED IN HTML FURTHER DOWN.
-    with open('credentials.json') as c:
+    with open('../credentials/credentials.json') as c:
         credentials = json.load(c)
     apiToken = credentials['api_token']
     fulcrum = Fulcrum(key=apiToken)
 
     # recipients list
     if test:
-        addr = ['gilbert.john@outlook.de', 'robeck@bp-la.com', 'philipp.robeck@gmail.com', 'phill@gmx.li']
+        addr = ['gilbert.john@outlook.de']
     else:
         addr = ['gilbert.john@outlook.de', 'robeck@bp-la.com', 'philipp.robeck@gmail.com', 'phill@gmx.li']
 
@@ -60,7 +58,8 @@ def METROISSemail(test, project_data):
     # get data
     if pages > 1:
         for p in range(1, pages + 1):
-            dataPage = fulcrum.records.search(url_params={'form_id': formID, 'page': p, 'per_page': recordsPerPage})['records']
+            dataPage = fulcrum.records.search(url_params={'form_id': formID, 'page': p, 'per_page': recordsPerPage})[
+                'records']
             if p > 1:
                 data.extend(dataPage)
             else:
@@ -68,48 +67,41 @@ def METROISSemail(test, project_data):
     else:
         data = fulcrum.records.search(url_params={'form_id': formID, 'page': 1, 'per_page': recordsPerPage})['records']
 
-
     # total count per package
     for index in range(len(data)):
         if '6678' in data[index]['form_values']:
             data[index]['dp'] = ''.join(data[index]['form_values']['6678']['choice_values'][0])
 
     # mail vars
-    ### GILBERT: THIS PREPARES THE EMAIL IN HTML AND ATTCHES TH LOGO ETC. PLEASE HAVE A READ AND MODIFY TO INCLUDE OUR DATA AND PDFs/
     msgRoot = MIMEMultipart('related')
     msgRoot['From'] = fromaddr
     msgRoot['To'] = ','.join(addr)
-    msgRoot['Subject'] = (f"{project_data['project_name']} Vegetation report.")
+    msgRoot['Subject'] = (f"{project_data['two_weeks']['project_name']} vegetation cover report.")
     msgRoot.preamble = 'This is a multi-part message in MIME format.'
 
     # Encapsulate the plain and HTML versions of the message body in an
     # 'alternative' part, so message agents can decide which they want to display.
     msgAlternative = MIMEMultipart('alternative')
     msgRoot.attach(msgAlternative)
+    text = ''
+    for timeframe in project_data:
+        # Next, we attach the body of the email to the MIME message:
+        text += f'<img src="cid:image1{timeframe}"><br>'
+        text += f'Project area: {project_data[timeframe]["project_area"]:.2f} km²<br>Vegetation cover({project_data[timeframe]["start_date"]}): {project_data[timeframe]["vegetation_start"]:,} m²<br>Relative vegetation cover ({project_data[timeframe]["start_date"]}): {project_data[timeframe]["vegetation_share_start"]:.2f}%<br>Vegetation cover ({project_data[timeframe]["end_date"]}): {project_data[timeframe]["vegetation_end"]:,} m²<br>Relative vegetation area at end date ({project_data[timeframe]["end_date"]}): {project_data[timeframe]["vegetation_share_end"]:.2f}%<br>Net vegetation change: {project_data[timeframe]["area_change"]:,} m²<br>Relative change: {(project_data[timeframe]["vegetation_share_end"] - project_data[timeframe]["vegetation_share_start"]):.2f}%<br><br>'
 
-    # email attachments
-    part = MIMEBase('application', "octet-stream")
-    path = Path(project_data['paths'][-1])
-    with open(path, 'rb') as file:
-        part.set_payload(file.read())
-        encoders.encode_base64(part)
-        part.add_header('Content-Disposition',
-                        'attachment', filename=path.name)
-        msgRoot.attach(part)
-    #end attachments
+        # This example assumes the image is in the current directory
+        fp = open(project_data[timeframe]['path'], 'rb')
+        msgImage = MIMEImage(fp.read())
+        fp.close()
 
-    # Next, we attach the body of the email to the MIME message:
+        # Define the image's ID as referenced above
+        msgImage.add_header('Content-ID', f'<image1{timeframe}>')
+        msgRoot.attach(msgImage)
     msgText = MIMEText(
-        f"Dear all, attached if the vegetation report for the project: {project_data['project_name']}\n"
-        f'Project area: {project_data["project_area"]:,} m²\n'
-        f'Vegetation area at start date ({project_data["first_image_date"]}): {project_data["vegetation_share_start"]:,} m²\n'
-        f'Vegetation area at start date ({project_data["first_image_date"]}) relative to the project area: {project_data["vegetation_share_start"]:.2f}%\n'
-        f'Vegetation area at end date ({project_data["latest_image_date"]}): {project_data["vegetation_end"]:,} m²\n'
-        f'Vegetation area at end date ({project_data["latest_image_date"]}) relative to the project area: {project_data["vegetation_share_end"]:.2f}%\n'
-        f'Vegetation area change: {project_data["area_change"]:,} m²\n'
-        f'Relative change: {project_data["relative_change"]:.2f}%\n')
-    msgAlternative.attach(msgText)
+        text, 'html'
+    )
 
+    msgAlternative.attach(msgText)
     # For sending the mail, we have to convert the object to a string, and then use the same prodecure as above to send
     # using the SMTP server.
     server = smtplib.SMTP('smtp.1und1.de', 587)
@@ -120,11 +112,12 @@ def METROISSemail(test, project_data):
     server.quit()
     gc.collect()
 
-with open('data.json', 'r', encoding='utf-8')as f:
+
+with open('data.json', 'r', encoding='utf-8') as f:
     try:
         data = json.load(f)
     except:
         print('Could not open json file.')
 
-METROISSemail(sendtest, data['one_year'])
+METROISSemail(sendtest, data)
 print('Email sent')
