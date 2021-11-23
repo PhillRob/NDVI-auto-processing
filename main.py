@@ -2,13 +2,10 @@
 import ee
 from datetime import datetime, timedelta
 import json
-import sys
 import os
-from fpdf import FPDF
 import folium
 import selenium
 import time
-from os import listdir
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from pathlib import Path
 

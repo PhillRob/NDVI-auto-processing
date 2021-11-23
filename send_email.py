@@ -27,7 +27,7 @@ logging.basicConfig(filename='fulcrum-monthly-mailer.log', level=logging.DEBUG)
 
 # general smtp mailer vars
 fromaddr = "mailer@bp-la.com"
-sendtest = True
+sendtest = False
 recordsPerPage = 5000
 
 ee.Initialize()
