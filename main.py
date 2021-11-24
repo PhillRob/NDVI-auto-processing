@@ -3,15 +3,11 @@ import ee
 from datetime import datetime, timedelta
 import json
 import os
+import io
 import folium
-import selenium
-import time
-from selenium.webdriver.firefox.options import Options as FirefoxOptions
-from pathlib import Path
+from PIL import Image
+from send_email import *
 
-
-IMAGE_WIDTH = 1000
-IMAGE_HEIGHT = 1000
 
 # ee.Authenticate()
 ee.Initialize()
@@ -301,20 +297,16 @@ for timeframe in timeframes:
         my_map.save(html_map)
         my_map
 
-        options = FirefoxOptions()
-        options.add_argument("--headless")
-        driver = selenium.webdriver.Firefox(options=options)
+        # imgkit.from_file(html_map, screenshot_save_name, config=config)
+        img_data = my_map._to_png(3)
+        img = Image.open(io.BytesIO(img_data))
+        img.save(screenshot_save_name)
 
-        # for 300dpi a5 we need  2480x1748
-        driver.set_window_size(IMAGE_WIDTH, IMAGE_HEIGHT)
-        driver.get('file:///' + os.path.dirname(os.path.abspath('map.html')) + '\\map.html')
-        # wait for html to load
-        time.sleep(3)
-        driver.save_screenshot(screenshot_save_name)
         image_list.append(screenshot_save_name)
         # discard temporary data
         os.remove('map.html')
-
+if new_report:
+    METROISSemail(sendtest, open_project_date('data.json'))
 # TODO: current dataset with dataset 2016
 # TODO: remove clouds from calculation
 # TODO: chart changes changes over time
