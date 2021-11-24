@@ -42,7 +42,9 @@ timeframes = {
               'nov_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=11, day=1)),
                             'end_date': ee.Date(py_date.replace(month=11))},
               'july_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=7, day=1)),
-                            'end_date': ee.Date(py_date.replace(month=7))}
+                            'end_date': ee.Date(py_date.replace(month=7))},
+            # 'since_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=7, day=1)),
+            #                 'end_date': ee.Date(py_date.replace(month=7))},
 }
 
 
@@ -256,7 +258,7 @@ for timeframe in timeframes:
             data[timeframe]['path'] = screenshot_save_name
             data[timeframe]['project_name'] = geo_data['name']
 
-        elif datetime.strptime(latest_image_date, '%Y-%m-%d') > datetime.strptime(data[timeframe]['end_date'],'%Y-%m-%d'):
+        elif datetime.strptime(latest_image_date, '%d.%m.%Y') > datetime.strptime(data[timeframe]['end_date'],'%d.%m.%Y'):
             print('New data. Updating File.')
             new_report = True
             data[timeframe]['end_date'] = latest_image_date.format("dd.MM.YYYY").getInfo()
@@ -271,6 +273,8 @@ for timeframe in timeframes:
             data[timeframe]['relative_change'] = relative_change
             data[timeframe]['path'] = screenshot_save_name
             data[timeframe]['project_name'] = geo_data['name']
+        else:
+            print(f'All data for {timeframe} is up to date')
     with open(json_file_name, 'w', encoding='utf-8') as f:
         json.dump(data, f)
 
@@ -310,8 +314,6 @@ for timeframe in timeframes:
         image_list.append(screenshot_save_name)
         # discard temporary data
         os.remove('map.html')
-
-
 
 # TODO: current dataset with dataset 2016
 # TODO: remove clouds from calculation
