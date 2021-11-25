@@ -288,7 +288,7 @@ for timeframe in timeframes:
         basemaps['Google Satellite'].add_to(my_map)
 
         folium.PolyLine(swapped_coords, color="white", weight=5, opacity=1).add_to(my_map)
-        folium.Choropleth(geo_data=geometry, fill_opacity=0.5, fill_color='#FFFFFF').add_to(my_map)
+        #folium.Choropleth(geo_data=geometry, fill_opacity=0.5, fill_color='#FFFFFF').add_to(my_map)
 
         my_map.add_ee_layer(growth_decline_img, growth_vis_params, 'Growth and decline image')
 
