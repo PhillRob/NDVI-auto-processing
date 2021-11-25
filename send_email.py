@@ -6,7 +6,7 @@ import gc
 import logging
 import math
 import smtplib
-
+import datetime
 import json
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
@@ -48,7 +48,7 @@ def METROISSemail(test, project_data):
     msgRoot = MIMEMultipart('related')
     msgRoot['From'] = fromaddr
     msgRoot['To'] = ','.join(addr)
-    msgRoot['Subject'] = f"{project_data['two_weeks']['project_name']} vegetation cover report."
+    msgRoot['Subject'] = f"{project_data['two_weeks']['project_name']} vegetation cover report {datetime.datetime.now().strftime('%d.%m.%Y')}."
     msgRoot.preamble = 'This is a multi-part message in MIME format.'
 
     # Encapsulate the plain and HTML versions of the message body in an
