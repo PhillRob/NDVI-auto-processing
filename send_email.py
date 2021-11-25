@@ -56,7 +56,7 @@ def METROISSemail(test, project_data):
     msgAlternative = MIMEMultipart('alternative')
     msgRoot.attach(msgAlternative)
 
-    text = ''
+    text = 'The vegetation change in the Diplomatic quarter is reported based on a Satellite analysis (Sentinel 2 satellite). The email is provided based on new data available every 7-14 days.<br>'
     for timeframe in project_data:
         # Next, we attach the body of the email to the MIME message:
         text += f'<b>Vegetation statistics from {project_data[timeframe]["start_date"]} to {project_data[timeframe]["end_date"]} for the {project_data[timeframe]["project_name"]} project</b>'
