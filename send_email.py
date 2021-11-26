@@ -47,7 +47,7 @@ def METROISSemail(test, project_data):
     msgRoot = MIMEMultipart('related')
     msgRoot['From'] = fromaddr
     msgRoot['To'] = ','.join(addr)
-    msgRoot['Subject'] = f"{project_data['two_weeks']['project_name']} vegetation cover report {datetime.datetime.now().strftime('%d.%m.%Y')}."
+    msgRoot['Subject'] = f"{project_data['two_weeks']['project_name']} vegetation cover report {datetime.now().strftime('%d.%m.%Y')}."
     msgRoot.preamble = 'This is a multi-part message in MIME format.'
 
     # Encapsulate the plain and HTML versions of the message body in an
