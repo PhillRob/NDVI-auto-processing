@@ -1,7 +1,5 @@
 # packages
 import ee
-from datetime import datetime, timedelta
-import json
 import os
 import io
 import folium
