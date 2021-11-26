@@ -9,7 +9,6 @@ from PIL import Image
 from send_email import *
 
 
-
 # ee.Authenticate()
 ee.Initialize()
 

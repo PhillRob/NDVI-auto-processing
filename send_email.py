@@ -6,7 +6,6 @@ import gc
 import logging
 import math
 import smtplib
-import datetime
 import json
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
