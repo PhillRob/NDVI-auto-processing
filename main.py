@@ -11,13 +11,13 @@ from send_email import *
 ee.Initialize()
 
 # variables
-## import AOI and set geometry
+# import AOI and set geometry
 with open('DQ.geojson') as f:
     geo_data = json.load(f)
 geometry = geo_data['features'][0]['geometry']
 
 
-## set dates for analysis
+# set dates for analysis
 py_date = datetime.utcnow()
 ee_date = ee.Date(py_date)
 # print(ee_date)
@@ -28,17 +28,11 @@ end_date = ee_date
 july_2016_end = ee.Date(py_date.replace(month=7))
 
 timeframes = {
-    'two_weeks':
-                   {'start_date': (ee.Date(py_date - timedelta(days=14))),
-                    'end_date':end_date},
-              'one_year': {'start_date': ee.Date(py_date.replace(year=py_date.year - 1)),
-                            'end_date': end_date},
-              'nov_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=11, day=1)),
-                            'end_date': ee.Date(py_date.replace(month=11))},
-              'july_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=7, day=1)),
-                            'end_date': ee.Date(py_date.replace(month=7))},
-            # 'since_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=7, day=1)),
-            #                 'end_date': ee.Date(py_date.replace(month=7))},
+    'two_weeks': {'start_date': (ee.Date(py_date - timedelta(days=14))), 'end_date': end_date},
+    'one_year': {'start_date': ee.Date(py_date.replace(year=py_date.year - 1)), 'end_date': end_date},
+    'nov_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=11, day=1)), 'end_date': ee.Date(py_date.replace(month=11))},
+    'july_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=7, day=1)), 'end_date': ee.Date(py_date.replace(month=7))}
+    # 'since_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=7, day=1)), 'end_date': ee.Date(py_date.replace(month=7))},
 }
 
 
@@ -56,11 +50,11 @@ def mask_cloud_and_shadows(image):
 def add_NDVI(image):
     ndvi = image.normalizedDifference(['B8', 'B4']).rename('ndvi')
     ndvi02 = ndvi.gt(0.2)
-    ndvi_img = image.addBands(ndvi).updateMask(ndvi02)
+    ndvi_img = image.addBands(ndvi).updateMask(ndvi02)  # TODO: low priority:vars not used
     ndvi02_area = ndvi02.multiply(ee.Image.pixelArea()).rename('ndvi02_area')
 
     # adding area of vegetation as a band
-    ndvi_img = ndvi_img.addBands(ndvi02_area)
+    ndvi_img = ndvi_img.addBands(ndvi02_area)  # TODO: low priority:vars not used
 
     # calculate ndvi > 0.2 area
     ndviStats = ndvi02_area.reduceRegion(
@@ -86,12 +80,13 @@ def add_NDVI(image):
 
     a = image.getNumber('ndvi02_area').divide(image.getNumber('area')).multiply(100)
     b = image.getNumber('ndvi02_area')
-    # TODO: low priority: refactor this is clunky and costly in terms of processing and storage. We do not need to have a band with a constant pixel value accorss the data set.
+
+    # TODO: low priority: refactor! this is clunky and costly in terms of processing and storage. We do not need to have a band with a constant pixel value accorss the data set.
     rel_cover = image.select('B1').multiply(0).add(a).rename('rel_ndvi')
     image = image.addBands(rel_cover)
     image = image.addBands(ndvi)
 
-    thres = ndvi.gte(0.2).rename('thres') #TODO: low priority: clean up this is the same as on line 60
+    thres = ndvi.gte(0.2).rename('thres')  #TODO: low priority: clean up this is the same as on line 60
     image = image.addBands(thres)
     image = image.addBands(b)
     return image
@@ -100,8 +95,8 @@ def add_NDVI(image):
 def get_veg_stats(image):
     date = image.get('system:time_start')
     name = image.get('name')
-    pixelArea = ee.Image.pixelArea() #TODO: low priority:vars not used
-    fixArea = 5961031705.843 #TODO: low priority:vars not used
+    pixelArea = ee.Image.pixelArea()  # TODO: low priority:vars not used
+    fixArea = 5961031705.843  # TODO: low priority:vars not used
     ndvi = image.normalizedDifference(['B8', 'B4']).rename('ndvi')
     image = image.addBands(ndvi)
 
@@ -134,6 +129,7 @@ def add_ee_layer(self, ee_image_object, vis_params, name):
         control=True,
     ).add_to(self)
 
+
 # Add Earth Engine drawing method to folium.
 folium.Map.add_ee_layer = add_ee_layer
 
@@ -143,7 +139,7 @@ growth_vis_params = {
     'palette': ['FF0000', '00FF00']
 }
 
-# swap out the coordinates because folium takes them the other way around
+# swap the coordinates because folium takes them the other way around
 swapped_coords = [[x[1], x[0]] for x in geometry['coordinates'][0][0]]
 
 basemaps = {
@@ -192,6 +188,7 @@ collection = (ee.ImageCollection('COPERNICUS/S2')
               .map(lambda image: image.clip(geometry))
               .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 1)))
 print('Generating NDVI')
+
 # select images from collection
 ndvi_collection = collection.map(add_NDVI)
 
@@ -201,7 +198,6 @@ for timeframe in timeframes:
     ndvi_timeframe_collection = timeframe_collection.map(add_NDVI)
     ndvi_img_start = ee.Image(ndvi_timeframe_collection.toList(ndvi_timeframe_collection.size()).get(0))
     ndvi_img_end = ee.Image(ndvi_timeframe_collection.toList(ndvi_timeframe_collection.size()).get(ndvi_timeframe_collection.size().subtract(1)))
-
 
     latest_image = ee.Image(timeframe_collection.toList(timeframe_collection.size()).get(timeframe_collection.size().subtract(1)))
     first_image = ee.Image(timeframe_collection.toList(timeframe_collection.size()).get(0))
@@ -304,7 +300,8 @@ for timeframe in timeframes:
         # discard temporary data
         os.remove('map.html')
 if new_report:
-    METROISSemail(sendtest, open_project_date('data.json'))
+    sendEmail(sendtest, open_project_date('data.json'))
+
 # TODO: current dataset with dataset 2016
 # TODO: remove clouds from calculation
 # TODO: chart changes changes over time

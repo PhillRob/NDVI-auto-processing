@@ -11,12 +11,8 @@ from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-
-from fulcrum import Fulcrum
-
-# fulcrum vars BPLA
-urlBase = 'https://api.fulcrumapp.com/api/v2/'
-logging.basicConfig(filename='fulcrum-monthly-mailer.log', level=logging.DEBUG)
+# set up logging TODO: do this for main script as well
+logging.basicConfig(filename='ndvi-report-mailer.log', level=logging.DEBUG)
 
 # no_timeout = Timeout(connect=None, read=None)
 # http = PoolManager(timeout=no_timeout)
@@ -26,16 +22,10 @@ fromaddr = "mailer@bp-la.com"
 sendtest = False
 
 
-
-
-# Metro
-## Issue Log
-def METROISSemail(test, project_data):
-    ####GILBERT: THIS IS JUST THE GET DATA AND RUN SUMMARY STATS PART WHICH POPUlATES VARS USED IN HTML FURTHER DOWN.
+def sendEmail(test, project_data):
     with open('../credentials/credentials.json') as c:
         credentials = json.load(c)
     apiToken = credentials['api_token']
-    fulcrum = Fulcrum(key=apiToken)
 
     # recipients list
     if test:
@@ -47,7 +37,7 @@ def METROISSemail(test, project_data):
     msgRoot = MIMEMultipart('related')
     msgRoot['From'] = fromaddr
     msgRoot['To'] = ','.join(addr)
-    msgRoot['Subject'] = f"{project_data['two_weeks']['project_name']} vegetation cover report {datetime.now().strftime('%d.%m.%Y')}."
+    msgRoot['Subject'] = f"{ project_data['two_weeks']['project_name']}: Vegetation Cover Report {datetime.now().strftime('%d.%m.%Y') }"
     msgRoot.preamble = 'This is a multi-part message in MIME format.'
 
     # Encapsulate the plain and HTML versions of the message body in an
@@ -55,12 +45,12 @@ def METROISSemail(test, project_data):
     msgAlternative = MIMEMultipart('alternative')
     msgRoot.attach(msgAlternative)
 
-    text = 'The vegetation change in the Diplomatic quarter is reported based on a Satellite analysis (Sentinel 2 satellite). The email is provided based on new data available every 7-14 days.<br>'
+    text = 'Dear all, <br> Here we report on the the vegetation change in the Diplomatic Quarter. The results are based on the analysis of the Sentinel 2 Satellite data. The email is provided as soon as new data becomes available every 7-14 days.<br>'
     for timeframe in project_data:
         # Next, we attach the body of the email to the MIME message:
-        text += f'<b>Vegetation statistics from {project_data[timeframe]["start_date"]} to {project_data[timeframe]["end_date"]} for the {project_data[timeframe]["project_name"]} project</b>'
+        text += f'<h2>{project_data[timeframe]["project_name"]}: Vegetation change from {project_data[timeframe]["start_date"]} to {project_data[timeframe]["end_date"]} </h2>'
         text += f'<img src="cid:image1{timeframe}"><br>'
-        text += f'Project area: {project_data[timeframe]["project_area"]:.2f} km²<br>Vegetation cover({project_data[timeframe]["start_date"]}): {project_data[timeframe]["vegetation_start"]:,} m²<br>Relative vegetation cover ({project_data[timeframe]["start_date"]}): {project_data[timeframe]["vegetation_share_start"]:.2f}%<br>Vegetation cover ({project_data[timeframe]["end_date"]}): {project_data[timeframe]["vegetation_end"]:,} m²<br>Relative vegetation area at end date ({project_data[timeframe]["end_date"]}): {project_data[timeframe]["vegetation_share_end"]:.2f}%<br>Net vegetation change: {project_data[timeframe]["area_change"]:,} m²<br>Relative change: {(project_data[timeframe]["vegetation_share_end"] - project_data[timeframe]["vegetation_share_start"]):.2f}%<br><br>'
+        text += f'Project area: {project_data[timeframe]["project_area"]:.2f} km²<br>Vegetation cover ({project_data[timeframe]["start_date"]}): {project_data[timeframe]["vegetation_start"]:,} m² ({project_data[timeframe]["vegetation_share_start"]:.2f}%)<br>Vegetation cover ({project_data[timeframe]["end_date"]}): {project_data[timeframe]["vegetation_end"]:,} m²({project_data[timeframe]["vegetation_share_end"]:.2f}%)<br>Net vegetation change: {project_data[timeframe]["area_change"]:,} m²<br><br>'
 
         # This example assumes the image is in the current directory
         fp = open(project_data[timeframe]['path'], 'rb')
@@ -92,3 +82,4 @@ def open_project_date(json_file):
             return data
         except:
             print('Could not open json file.')
+
