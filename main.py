@@ -12,7 +12,7 @@ ee.Initialize()
 
 # variables
 # import AOI and set geometry
-with open('DQ.geojson') as f:
+with open('/NDVI-auto-processing/Diplomatic Quarter.geojson') as f:
     geo_data = json.load(f)
 geometry = geo_data['features'][0]['geometry']
 

@@ -12,7 +12,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 # set up logging TODO: do this for main script as well
-logging.basicConfig(filename='ndvi-report-mailer.log', level=logging.DEBUG)
+#logging.basicConfig(filename='ndvi-report-mailer.log', level=logging.DEBUG)
 
 # no_timeout = Timeout(connect=None, read=None)
 # http = PoolManager(timeout=no_timeout)
