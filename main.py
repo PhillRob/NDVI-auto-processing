@@ -12,7 +12,7 @@ ee.Initialize()
 
 # variables
 # import AOI and set geometry
-with open('/NDVI-auto-processing/Diplomatic Quarter.geojson') as f:
+with open('NDVI-auto-processing/Diplomatic Quarter.geojson') as f:
     geo_data = json.load(f)
 geometry = geo_data['features'][0]['geometry']
 
@@ -228,7 +228,7 @@ for timeframe in timeframes:
     # compare date of latest image with last recorded image
     # if there is new data it will set new_report to True
     json_file_name = 'NDVI-auto-processing/data.json'
-    screenshot_save_name = f'..NDVI-auto/processing/output/growth_decline_{timeframe}.png'
+    screenshot_save_name = f'..NDVI-auto-processing/output/growth_decline_{timeframe}.png'
     with open(json_file_name, 'r', encoding='utf-8')as f:
         data = json.load(f)
         if timeframe not in data.keys():
