@@ -12,7 +12,7 @@ ee.Initialize()
 
 # variables
 # import AOI and set geometry
-with open('NDVI-auto-processing/Diplomatic Quarter.geojson') as f:
+with open('Diplomatic Quarter.geojson') as f:
     geo_data = json.load(f)
 geometry = geo_data['features'][0]['geometry']
 
@@ -227,8 +227,8 @@ for timeframe in timeframes:
     new_report = False
     # compare date of latest image with last recorded image
     # if there is new data it will set new_report to True
-    json_file_name = 'output/data.json'
-    screenshot_save_name = f'output/growth_decline_{timeframe}.png'
+    json_file_name = '../output/data.json'
+    screenshot_save_name = f'../output/growth_decline_{timeframe}.png'
     with open(json_file_name, 'r', encoding='utf-8')as f:
         data = json.load(f)
         if timeframe not in data.keys():
@@ -299,9 +299,9 @@ for timeframe in timeframes:
         image_list.append(screenshot_save_name)
 
         # discard temporary data
-        os.remove('map.html')
+        os.remove(html_map)
 if new_report:
-    sendEmail(sendtest, open_project_date('output/data.json'))
+    sendEmail(sendtest, open_project_date('../output/data.json'))
 
 # TODO: current dataset with dataset 2016
 # TODO: remove clouds from calculation
