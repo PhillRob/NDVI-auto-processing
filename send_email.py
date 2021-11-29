@@ -23,7 +23,7 @@ sendtest = False
 
 
 def sendEmail(test, project_data):
-    with open('../credentials/credentials.json') as c:
+    with open('credentials/credentials.json') as c:
         credentials = json.load(c)
     apiToken = credentials['api_token']
 
