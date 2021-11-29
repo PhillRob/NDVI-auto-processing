@@ -1,10 +1,11 @@
 # packages
 import ee
 import os
-import io
 import folium
-from PIL import Image
 from send_email import *
+import selenium.webdriver
+from selenium.webdriver.firefox.options import Options
+import time
 
 
 # ee.Authenticate()
@@ -32,7 +33,7 @@ timeframes = {
     'one_year': {'start_date': ee.Date(py_date.replace(year=py_date.year - 1)), 'end_date': end_date},
     'nov_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=11, day=1)), 'end_date': ee.Date(py_date.replace(month=11))},
     'july_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=7, day=1)), 'end_date': ee.Date(py_date.replace(month=7))},
-    'since_2016': {'start_date': ee.Date(py_date.replace(year=2016)), 'end_date': end_date},
+    'since_2016': {'start_date': ee.Date(py_date.replace(year=2016)), 'end_date': ee.Date(py_date)},
 }
 
 
@@ -136,7 +137,7 @@ folium.Map.add_ee_layer = add_ee_layer
 growth_vis_params = {
     'min': -1,
     'max': 1,
-    'palette': ['FF0000', '00FF00']
+    'palette': ['FF0000', '00FF00'],
 }
 
 # swap the coordinates because folium takes them the other way around
@@ -275,13 +276,11 @@ for timeframe in timeframes:
         centroid = ee.Geometry(geometry).centroid().getInfo()['coordinates']
         # get coordinates from centroid for folium
         lat, lon = centroid[1], centroid[0]
-
         my_map = folium.Map(location=[lat, lon], zoom_control=False, control_scale=True)
-
         basemaps['Google Satellite'].add_to(my_map)
 
         folium.PolyLine(swapped_coords, color="white", weight=5, opacity=1).add_to(my_map)
-        #folium.Choropleth(geo_data=geometry, fill_opacity=0.5, fill_color='#FFFFFF').add_to(my_map)
+        # folium.Choropleth(geo_data=geometry, fill_opacity=0.5, fill_color='#FFFFFF').add_to(my_map)
 
         my_map.add_ee_layer(growth_decline_img, growth_vis_params, 'Growth and decline image')
 
@@ -291,13 +290,17 @@ for timeframe in timeframes:
         my_map.save(html_map)
         my_map
 
-        # imgkit.from_file(html_map, screenshot_save_name, config=config)
-        img_data = my_map._to_png(3)
-        img = Image.open(io.BytesIO(img_data))
-        img.save(screenshot_save_name)
+        options = Options()
+        options.add_argument('--headless')
+
+        driver = selenium.webdriver.Firefox(options=options)
+        driver.set_window_size(1200, 1200)
 
         image_list.append(screenshot_save_name)
-
+        driver.get(f'file:///{os.path.dirname(os.path.abspath("map.html"))}\\map.html')
+        time.sleep(3)
+        driver.save_screenshot(screenshot_save_name)
+        driver.quit()
         # discard temporary data
         os.remove(html_map)
 if new_report:
