@@ -33,21 +33,24 @@ july_2016_end = ee.Date(py_date.replace(month=7))
 
 timeframes = {
     'two_weeks': {'start_date': (ee.Date(py_date - timedelta(days=14))), 'end_date': end_date},
-    # 'one_year': {'start_date': ee.Date(py_date.replace(year=py_date.year - 1)), 'end_date': end_date},
-    # 'nov_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=11, day=1)), 'end_date': ee.Date(py_date.replace(month=11))},
-    # 'july_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=7, day=1)), 'end_date': ee.Date(py_date.replace(month=7))},
-    # 'since_2016': {'start_date': ee.Date(py_date.replace(year=2016)), 'end_date': ee.Date(py_date)},
+    'one_year': {'start_date': ee.Date(py_date.replace(year=py_date.year - 1)), 'end_date': end_date},
+    'nov_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=11, day=1)), 'end_date': ee.Date(py_date.replace(month=11))},
+    'july_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=7, day=1)), 'end_date': ee.Date(py_date.replace(month=7))},
+    'since_2016': {'start_date': ee.Date(py_date.replace(year=2016)), 'end_date': ee.Date(py_date)},
 }
 
 
 # cloud masking function
-def mask_cloud_and_shadows(image):
-    qa = image.select('QA60')
+def maskS2clouds(image):
+  qa = image.select('QA60')
 
-    # Both flags should be set to zero, indicating clear conditions
-    clouds = qa.bitwiseAnd(1 << 10).Or(qa.bitwiseAnd(1 << 11))
+  cloudBitMask = 1 << 10
+  cirrusBitMask = 1 << 11
 
-    return image.updateMask(clouds.Not())
+  mask = qa.bitwiseAnd(cloudBitMask).eq(0).And(qa.bitwiseAnd(cirrusBitMask).eq(0))
+
+  return image.updateMask(mask).divide(10000)
+
 
 
 # NDVI function
