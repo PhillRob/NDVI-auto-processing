@@ -1,4 +1,6 @@
 # packages
+import logging
+
 import ee
 import os
 import folium
@@ -7,13 +9,14 @@ import selenium.webdriver
 from selenium.webdriver.firefox.options import Options
 import time
 
+logging.basicConfig(filename='ndvi-report-mailer.log', level=logging.DEBUG)
 
 # ee.Authenticate()
 ee.Initialize()
 
 # variables
 # import AOI and set geometry
-with open('Diplomatic Quarter.geojson') as f:
+with open('NDVI-auto-processing/Diplomatic Quarter.geojson') as f:
     geo_data = json.load(f)
 geometry = geo_data['features'][0]['geometry']
 
@@ -30,10 +33,10 @@ july_2016_end = ee.Date(py_date.replace(month=7))
 
 timeframes = {
     'two_weeks': {'start_date': (ee.Date(py_date - timedelta(days=14))), 'end_date': end_date},
-    'one_year': {'start_date': ee.Date(py_date.replace(year=py_date.year - 1)), 'end_date': end_date},
-    'nov_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=11, day=1)), 'end_date': ee.Date(py_date.replace(month=11))},
-    'july_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=7, day=1)), 'end_date': ee.Date(py_date.replace(month=7))},
-    'since_2016': {'start_date': ee.Date(py_date.replace(year=2016)), 'end_date': ee.Date(py_date)},
+    # 'one_year': {'start_date': ee.Date(py_date.replace(year=py_date.year - 1)), 'end_date': end_date},
+    # 'nov_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=11, day=1)), 'end_date': ee.Date(py_date.replace(month=11))},
+    # 'july_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=7, day=1)), 'end_date': ee.Date(py_date.replace(month=7))},
+    # 'since_2016': {'start_date': ee.Date(py_date.replace(year=2016)), 'end_date': ee.Date(py_date)},
 }
 
 
@@ -119,16 +122,52 @@ def get_veg_stats(image):
     # the above is better area stats. so something similar for the overall area in the add_NDVI function
 
 
-def add_ee_layer(self, ee_image_object, vis_params, name):
+def add_ee_layer(self, ee_object, vis_params, name):
     """Adds a method for displaying Earth Engine image tiles to folium map."""
-    map_id_dict = ee.Image(ee_image_object).getMapId(vis_params)
-    folium.raster_layers.TileLayer(
-        tiles=map_id_dict['tile_fetcher'].url_format,
-        attr='Map Data &copy; <a href="https://earthengine.google.com/">Google Earth Engine</a>',
-        name=name,
-        overlay=True,
-        control=True,
-    ).add_to(self)
+    try:
+        # display ee.Image()
+        if isinstance(ee_object, ee.image.Image):
+            map_id_dict = ee.Image(ee_object).getMapId(vis_params)
+            folium.raster_layers.TileLayer(
+                tiles=map_id_dict['tile_fetcher'].url_format,
+                attr='Google Earth Engine',
+                name=name,
+                overlay=True,
+                control=True
+            ).add_to(self)
+        # display ee.ImageCollection()
+        elif isinstance(ee_object, ee.imagecollection.ImageCollection):
+            ee_object_new = ee_object.mosaic()
+            map_id_dict = ee.Image(ee_object_new).getMapId(vis_params)
+            folium.raster_layers.TileLayer(
+                tiles=map_id_dict['tile_fetcher'].url_format,
+                attr='Google Earth Engine',
+                name=name,
+                overlay=True,
+                control=True
+            ).add_to(self)
+        # display ee.Geometry()
+        elif isinstance(ee_object, ee.geometry.Geometry):
+            folium.GeoJson(
+                data=ee_object.getInfo(),
+                name=name,
+                overlay=True,
+                control=True
+            ).add_to(self)
+        # display ee.FeatureCollection()
+        elif isinstance(ee_object, ee.featurecollection.FeatureCollection):
+            ee_object_new = ee.Image().paint(ee_object, 0, 2)
+            map_id_dict = ee.Image(ee_object_new).getMapId(vis_params)
+            folium.raster_layers.TileLayer(
+                tiles=map_id_dict['tile_fetcher'].url_format,
+                attr='Google Earth Engine',
+                name=name,
+                overlay=True,
+                control=True
+            ).add_to(self)
+
+    except:
+        print("Could not display {}".format(name))
 
 
 # Add Earth Engine drawing method to folium.
@@ -138,6 +177,11 @@ growth_vis_params = {
     'min': -1,
     'max': 1,
     'palette': ['FF0000', '00FF00'],
+}
+
+geo_vis_params = {
+    'opacity': 0.5,
+    'palette': ['FFFFFF'],
 }
 
 # swap the coordinates because folium takes them the other way around
@@ -228,8 +272,8 @@ for timeframe in timeframes:
     new_report = False
     # compare date of latest image with last recorded image
     # if there is new data it will set new_report to True
-    json_file_name = '../output/data.json'
-    screenshot_save_name = f'../output/growth_decline_{timeframe}.png'
+    json_file_name = 'output/data.json'
+    screenshot_save_name = f'output/growth_decline_{timeframe}.png'
     with open(json_file_name, 'r', encoding='utf-8')as f:
         data = json.load(f)
         if timeframe not in data.keys():
@@ -279,9 +323,9 @@ for timeframe in timeframes:
         my_map = folium.Map(location=[lat, lon], zoom_control=False, control_scale=True)
         basemaps['Google Satellite'].add_to(my_map)
 
-        folium.PolyLine(swapped_coords, color="white", weight=5, opacity=1).add_to(my_map)
-        # folium.Choropleth(geo_data=geometry, fill_opacity=0.5, fill_color='#FFFFFF').add_to(my_map)
+        white_polygon = ee.geometry.Geometry(geo_json=geometry)
 
+        my_map.add_ee_layer(white_polygon, geo_vis_params, 'Half opaque polygon')
         my_map.add_ee_layer(growth_decline_img, growth_vis_params, 'Growth and decline image')
 
         # fit bounds for optimal zoom level
@@ -304,7 +348,10 @@ for timeframe in timeframes:
         # discard temporary data
         os.remove(html_map)
 if new_report:
-    sendEmail(sendtest, open_project_date('../output/data.json'))
+    logging.debug(f'New email sent on {str(datetime.today())}')
+    sendEmail(sendtest, open_project_date('output/data.json'))
+else:
+    logging.debug(f'No new email on {str(datetime.today())}')
 
 # TODO: current dataset with dataset 2016
 # TODO: remove clouds from calculation
