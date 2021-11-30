@@ -41,13 +41,16 @@ timeframes = {
 
 
 # cloud masking function
-def mask_cloud_and_shadows(image):
-    qa = image.select('QA60')
+def maskS2clouds(image):
+  qa = image.select('QA60')
 
-    # Both flags should be set to zero, indicating clear conditions
-    clouds = qa.bitwiseAnd(1 << 10).Or(qa.bitwiseAnd(1 << 11))
+  cloudBitMask = 1 << 10
+  cirrusBitMask = 1 << 11
 
-    return image.updateMask(clouds.Not())
+  mask = qa.bitwiseAnd(cloudBitMask).eq(0).And(qa.bitwiseAnd(cirrusBitMask).eq(0))
+
+  return image.updateMask(mask).divide(10000)
+
 
 
 # NDVI function
