@@ -48,7 +48,7 @@ def sendEmail(test, project_data):
     text = 'Dear all, <br> Here we report on the the vegetation change in the Diplomatic Quarter. The results are based on the analysis of the Sentinel 2 Satellite data. The email is provided as soon as new data becomes available every 7-14 days.<br>'
     for timeframe in project_data:
         # Next, we attach the body of the email to the MIME message:
-        text += f'<h2>{project_data[timeframe]["project_name"]}: Vegetation change from {project_data[timeframe]["start_date"]} to {project_data[timeframe]["end_date"]} </h2>'
+        text += f'<h2>{project_data[timeframe]["project_name"]}: Vegetation change from {project_data[timeframe]["start_date_satellite"]} to {project_data[timeframe]["end_date_satellite"]} </h2>'
         text += f'<img src="cid:image1{timeframe}"><br>'
         text += f'Project area: {project_data[timeframe]["project_area"]:.2f} km²<br>Vegetation cover ({project_data[timeframe]["start_date"]}): {project_data[timeframe]["vegetation_start"]:,} m² ({project_data[timeframe]["vegetation_share_start"]:.2f}%)<br>Vegetation cover ({project_data[timeframe]["end_date"]}): {project_data[timeframe]["vegetation_end"]:,} m² ({project_data[timeframe]["vegetation_share_end"]:.2f}%)<br>Net vegetation change: {project_data[timeframe]["area_change"]:,} m² ({project_data[timeframe]["vegetation_share_change"]}%)<br><br>'
 
