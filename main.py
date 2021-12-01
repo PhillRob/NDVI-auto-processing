@@ -1,4 +1,6 @@
-# packages
+# !/usr/bin/python3
+# -*- coding: UTF-8 -*-
+# import packages
 import logging
 
 import ee
@@ -97,6 +99,23 @@ def add_NDVI(image):
     image = image.addBands(thres)
     image = image.addBands(b)
     return image
+
+def get_NONcloud_stats(image):
+    date = image.get('system:time_start')
+    name = image.get('name')
+    NDVIstats = image.select('b1').reduceRegion(
+        reducer=ee.Reducer.count(),
+        geometry=geometry,
+        scale=10,
+        maxPixels=1e29
+    )
+    nonCloudArea = ee.Number(NDVIstats.get('B1')).multiply(100)
+    # CALC DIFF
+    return ee.Feature(None, {
+        'NDVIarea': NDVIarea,
+        'name': name,
+        'system:time_start': date})
+    # the above is better area stats. so something similar for the overall area in the add_NDVI function
 
 
 def get_veg_stats(image):
@@ -234,10 +253,13 @@ collection = (ee.ImageCollection('COPERNICUS/S2')
               .filterDate(start_date, end_date)
               .filterBounds(geometry)
               .map(lambda image: image.clip(geometry))
-              .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 1)))
+              .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 1))) #increase if cloudl maskign works
 print('Generating NDVI')
 
 # select images from collection
+# map over cloud function first
+# select first and last elementn of collections
+cloud_collection = collection.map(maskS2clouds)
 ndvi_collection = collection.map(add_NDVI)
 
 image_list = []
@@ -254,7 +276,7 @@ for timeframe in timeframes:
     first_image_date = first_image.date().format("dd.MM.YYYY").getInfo()
 
     polygon = ee.Geometry.Polygon(geometry['coordinates'][0][0])
-    project_area = round(polygon.area().getInfo())
+    project_area = round(polygon.area().getInfo()) # this gets the area
 
     vegetation_start = get_veg_stats(first_image).getInfo()["properties"]["NDVIarea"]
     vegetation_end = get_veg_stats(latest_image).getInfo()["properties"]["NDVIarea"]
