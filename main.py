@@ -51,7 +51,22 @@ def maskS2clouds(image):
 
   return image.updateMask(mask).divide(10000)
 
-
+def get_cloud_stats(image):
+    date = image.get('system:time_start')
+    name = image.get('name')
+    CloudStats = image.select('B1').reduceRegion(
+        reducer=ee.Reducer.count(),
+        geometry=geometry,
+        scale=10,
+        maxPixels=1e29
+    )
+    nonCloudArea = ee.Number(CloudStats.get('B1')).multiply(100)
+    return nonCloudArea
+    # CALC DIFF
+    # return ee.Feature(None, {
+    #     'NDVIarea': NDVIarea,
+    #     'name': name,
+    #     'system:time_start': date})
 
 # NDVI function
 def add_NDVI(image):
@@ -256,6 +271,12 @@ for timeframe in timeframes:
     polygon = ee.Geometry.Polygon(geometry['coordinates'][0][0])
     project_area = round(polygon.area().getInfo())
 
+    cloud_image_first = maskS2clouds(ndvi_img_start)
+    cloud_image_latest = maskS2clouds(ndvi_img_end)
+
+    cloud_area_first = project_area - get_cloud_stats(cloud_image_first).getInfo()
+    cloud_area_latest = project_area - get_cloud_stats(cloud_image_latest).getInfo()
+
     vegetation_start = get_veg_stats(first_image).getInfo()["properties"]["NDVIarea"]
     vegetation_end = get_veg_stats(latest_image).getInfo()["properties"]["NDVIarea"]
     area_change = vegetation_end - vegetation_start
@@ -355,11 +376,11 @@ for timeframe in timeframes:
         driver.quit()
         # discard temporary data
         os.remove(html_map)
-# if new_report:
-#     sendEmail(sendtest, open_project_date('output/data.json'))
-#     logging.debug(f'New email sent on {str(datetime.today())}')
-# else:
-#     logging.debug(f'No new email on {str(datetime.today())}')
+if new_report:
+    sendEmail(sendtest, open_project_date('output/data.json'))
+    logging.debug(f'New email sent on {str(datetime.today())}')
+else:
+    logging.debug(f'No new email on {str(datetime.today())}')
 
 # TODO: current dataset with dataset 2016
 # TODO: remove clouds from calculation
