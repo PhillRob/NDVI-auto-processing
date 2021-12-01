@@ -102,8 +102,7 @@ def add_NDVI(image):
 def get_veg_stats(image):
     date = image.get('system:time_start')
     name = image.get('name')
-    pixelArea = ee.Image.pixelArea()  # TODO: low priority:vars not used
-    fixArea = 5961031705.843  # TODO: low priority:vars not used
+
     ndvi = image.normalizedDifference(['B8', 'B4']).rename('ndvi')
     image = image.addBands(ndvi)
 
@@ -234,11 +233,12 @@ collection = (ee.ImageCollection('COPERNICUS/S2')
               .filterDate(start_date, end_date)
               .filterBounds(geometry)
               .map(lambda image: image.clip(geometry))
-              .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 1)))
+              .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 1))
+              )
 print('Generating NDVI')
 
 # select images from collection
-ndvi_collection = collection.map(add_NDVI)
+ndvi_collection = collection.map(add_NDVI).map(maskS2clouds)
 
 image_list = []
 for timeframe in timeframes:
@@ -285,6 +285,8 @@ for timeframe in timeframes:
             data[timeframe] = {}
             data[timeframe]['start_date'] = timeframes[timeframe]['start_date'].format("dd.MM.YYYY").getInfo()
             data[timeframe]['end_date'] = timeframes[timeframe]['end_date'].format("dd.MM.YYYY").getInfo()
+            data[timeframe]['start_date_satellite'] = first_image_date
+            data[timeframe]['end_date_satellite'] = latest_image_date
             data[timeframe]['vegetation_start'] = vegetation_start
             data[timeframe]['vegetation_end'] = vegetation_end
             data[timeframe]['vegetation_share_start'] = vegetation_share_start
@@ -298,9 +300,12 @@ for timeframe in timeframes:
 
         elif datetime.strptime(latest_image_date, '%d.%m.%Y') > datetime.strptime(data[timeframe]['end_date'],'%d.%m.%Y'):
             print('New data. Updating File.')
+            logging.debug(f'New data in timeframe: {timeframe}')
             new_report = True
             data[timeframe]['end_date'] = latest_image_date.format("dd.MM.YYYY").getInfo()
             data[timeframe]['start_date'] = first_image_date.format("dd.MM.YYYY").getInfo()
+            data[timeframe]['start_date_satellite'] = first_image_date
+            data[timeframe]['end_date_satellite'] = latest_image_date
             data[timeframe]['vegetation_start'] = vegetation_start
             data[timeframe]['vegetation_end'] = vegetation_end
             data[timeframe]['vegetation_share_start'] = vegetation_share_start
@@ -350,11 +355,11 @@ for timeframe in timeframes:
         driver.quit()
         # discard temporary data
         os.remove(html_map)
-if new_report:
-    logging.debug(f'New email sent on {str(datetime.today())}')
-    sendEmail(sendtest, open_project_date('output/data.json'))
-else:
-    logging.debug(f'No new email on {str(datetime.today())}')
+# if new_report:
+#     sendEmail(sendtest, open_project_date('output/data.json'))
+#     logging.debug(f'New email sent on {str(datetime.today())}')
+# else:
+#     logging.debug(f'No new email on {str(datetime.today())}')
 
 # TODO: current dataset with dataset 2016
 # TODO: remove clouds from calculation
