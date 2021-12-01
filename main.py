@@ -56,13 +56,13 @@ def maskS2clouds(image):
 def get_cloud_stats(image):
     date = image.get('system:time_start')
     name = image.get('name')
-    CloudStats = image.select('B1').reduceRegion(
+    CloudStats = image.select('QA60').reduceRegion(
         reducer=ee.Reducer.count(),
         geometry=geometry,
         scale=10,
         maxPixels=1e29
     )
-    nonCloudArea = ee.Number(CloudStats.get('B1')).multiply(100)
+    nonCloudArea = ee.Number(CloudStats.get('QA60')).multiply(100)
     return nonCloudArea
     # CALC DIFF
     # return ee.Feature(None, {

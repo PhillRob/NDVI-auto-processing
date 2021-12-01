@@ -50,7 +50,7 @@ def sendEmail(test, project_data):
         # Next, we attach the body of the email to the MIME message:
         text += f'<h2>{project_data[timeframe]["project_name"]}: Vegetation change from {project_data[timeframe]["start_date_satellite"]} to {project_data[timeframe]["end_date_satellite"]} </h2>'
         text += f'<img src="cid:image1{timeframe}"><br>'
-        text += f'Project area: {project_data[timeframe]["project_area"]:.2f} km²<br>Vegetation cover ({project_data[timeframe]["start_date"]}): {project_data[timeframe]["vegetation_start"]:,} m² ({project_data[timeframe]["vegetation_share_start"]:.2f}%)<br>Vegetation cover ({project_data[timeframe]["end_date"]}): {project_data[timeframe]["vegetation_end"]:,} m² ({project_data[timeframe]["vegetation_share_end"]:.2f}%)<br>Net vegetation change: {project_data[timeframe]["area_change"]:,} m² ({project_data[timeframe]["vegetation_share_change"]}%)<br><br>'
+        text += f'Project area: {project_data[timeframe]["project_area"]:.2f} km²<br>Vegetation cover ({project_data[timeframe]["start_date"]}): {project_data[timeframe]["vegetation_start"]:,} m² ({project_data[timeframe]["vegetation_share_start"]:.2f}%)<br>Vegetation cover ({project_data[timeframe]["end_date"]}): {project_data[timeframe]["vegetation_end"]:,} m² ({project_data[timeframe]["vegetation_share_end"]:.2f}%)<br>Net vegetation change: {project_data[timeframe]["area_change"]:,} m² ({project_data[timeframe]["vegetation_share_change"]:.2f}%)<br><br>'
 
         # This example assumes the image is in the current directory
         fp = open(project_data[timeframe]['path'], 'rb')
