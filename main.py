@@ -67,6 +67,7 @@ def maskS2clouds(image):
   mask = qa.bitwiseAnd(cloudBitMask).eq(0).And(qa.bitwiseAnd(cirrusBitMask).eq(0))
 
   return image.updateMask(mask).divide(10000)
+
 def get_project_area(image):
     date = image.get('system:time_start')
     name = image.get('name')
@@ -144,6 +145,7 @@ def add_NDVI(image):
     image = image.addBands(thres)
     image = image.addBands(b)
     return image
+
 def get_veg_stats(image):
     date = image.get('system:time_start')
     name = image.get('name')
