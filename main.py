@@ -9,16 +9,35 @@ import folium
 from send_email import *
 import selenium.webdriver
 from selenium.webdriver.firefox.options import Options
+import sys
 import time
 
+local_test_run = False
+email_test_run = False
+
+if len(sys.argv) >= 1:
+    # if test run is declared true through the command line we just run local tests
+    local_test_run = int(sys.argv[1])
+if len(sys.argv) >= 2:
+    email_test_run = int(sys.argv[2])
+
 logging.basicConfig(filename='ndvi-report-mailer.log', level=logging.DEBUG)
+
+if local_test_run:
+    GEOJSON_PATH = 'Diplomatic Quarter.geojson'
+    JSON_FILE_NAME = '../output/data.json'
+    SCREENSHOT_SAVE_NAME = f'../output/growth_decline_'
+else:
+    GEOJSON_PATH = 'NDVI-auto-processing/Diplomatic Quarter.geojson'
+    JSON_FILE_NAME = 'output/data.json'
+    SCREENSHOT_SAVE_NAME = f'output/growth_decline_'
 
 # ee.Authenticate()
 ee.Initialize()
 
 # variables
 # import AOI and set geometry
-with open('NDVI-auto-processing/Diplomatic Quarter.geojson') as f:
+with open(GEOJSON_PATH) as f:
     geo_data = json.load(f)
 geometry = geo_data['features'][0]['geometry']
 
@@ -35,10 +54,10 @@ july_2016_end = ee.Date(py_date.replace(month=7))
 
 timeframes = {
     'two_weeks': {'start_date': (ee.Date(py_date - timedelta(days=14))), 'end_date': end_date},
-    'one_year': {'start_date': ee.Date(py_date.replace(year=py_date.year - 1)), 'end_date': end_date},
-    'nov_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=11, day=1)), 'end_date': ee.Date(py_date.replace(month=11))},
-    'july_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=7, day=1)), 'end_date': ee.Date(py_date.replace(month=7))},
-    'since_2016': {'start_date': ee.Date(py_date.replace(year=2016)), 'end_date': ee.Date(py_date)},
+    # 'one_year': {'start_date': ee.Date(py_date.replace(year=py_date.year - 1)), 'end_date': end_date},
+    # 'nov_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=11, day=1)), 'end_date': ee.Date(py_date.replace(month=11))},
+    # 'july_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=7, day=1)), 'end_date': ee.Date(py_date.replace(month=7))},
+    # 'since_2016': {'start_date': ee.Date(py_date.replace(year=2016)), 'end_date': ee.Date(py_date)},
 }
 
 
@@ -52,23 +71,38 @@ def maskS2clouds(image):
   mask = qa.bitwiseAnd(cloudBitMask).eq(0).And(qa.bitwiseAnd(cirrusBitMask).eq(0))
 
   return image.updateMask(mask).divide(10000)
-
-def get_cloud_stats(image):
+def get_project_area(image):
     date = image.get('system:time_start')
     name = image.get('name')
-    CloudStats = image.select('QA60').reduceRegion(
+    project_stats = image.select('B1').reduceRegion(
         reducer=ee.Reducer.count(),
         geometry=geometry,
         scale=10,
         maxPixels=1e29
     )
-    nonCloudArea = ee.Number(CloudStats.get('QA60')).multiply(100)
-    return nonCloudArea
+    project_area_size = ee.Number(project_stats.get('B1')).multiply(100)
+    return ee.Feature(None, {
+        'project_area_size': project_area_size,
+        'name': name,
+        'system:time_start': date
+        }
+    )
+def get_cloud_stats(image):
+    date = image.get('system:time_start')
+    name = image.get('name')
+
+    CloudStats = image.select('B1').reduceRegion(
+        reducer=ee.Reducer.count(),
+        geometry=geometry,
+        scale=10,
+        maxPixels=1e29
+    )
+    nonCloudArea = ee.Number(CloudStats.get('B1')).multiply(100)
     # CALC DIFF
-    # return ee.Feature(None, {
-    #     'NDVIarea': NDVIarea,
-    #     'name': name,
-    #     'system:time_start': date})
+    return ee.Feature(None, {
+        'nonCloudArea': nonCloudArea,
+        'name': name,
+        'system:time_start': date})
 
 # NDVI function
 def add_NDVI(image):
@@ -185,8 +219,8 @@ def add_ee_layer(self, ee_object, vis_params, name):
                 control=True
             ).add_to(self)
 
-    except:
-        print("Could not display {}".format(name))
+    except Exception as e:
+        print(f"Could not display {name}. Exception: {e}")
 
 
 # Add Earth Engine drawing method to folium.
@@ -200,6 +234,9 @@ growth_vis_params = {
 
 geo_vis_params = {
     'opacity': 0.5,
+    'palette': ['FFFFFF'],
+}
+cloud_vis_params = {
     'palette': ['FFFFFF'],
 }
 
@@ -250,12 +287,14 @@ collection = (ee.ImageCollection('COPERNICUS/S2')
               .filterDate(start_date, end_date)
               .filterBounds(geometry)
               .map(lambda image: image.clip(geometry))
-              .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 1))
+              # .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
               )
 print('Generating NDVI')
 
 # select images from collection
-ndvi_collection = collection.map(add_NDVI).map(maskS2clouds)
+ndvi_collection = collection.map(add_NDVI)
+cloud_mask_collection = collection.map(maskS2clouds)
+cloud_collection = cloud_mask_collection.map(get_cloud_stats)
 
 image_list = []
 for timeframe in timeframes:
@@ -270,14 +309,11 @@ for timeframe in timeframes:
     latest_image_date = latest_image.date().format("dd.MM.YYYY").getInfo()
     first_image_date = first_image.date().format("dd.MM.YYYY").getInfo()
 
-    polygon = ee.Geometry.Polygon(geometry['coordinates'][0][0])
-    project_area = round(polygon.area().getInfo())
+    project_area = get_project_area(first_image).getInfo()['properties']['project_area_size']
 
-    cloud_image_first = maskS2clouds(ndvi_img_start)
-    cloud_image_latest = maskS2clouds(ndvi_img_end)
+    cloud_image_first = maskS2clouds(first_image)
+    cloud_image_latest = maskS2clouds(latest_image)
 
-    cloud_area_first = project_area - get_cloud_stats(cloud_image_first).getInfo()
-    cloud_area_latest = project_area - get_cloud_stats(cloud_image_latest).getInfo()
 
     vegetation_start = get_veg_stats(first_image).getInfo()["properties"]["NDVIarea"]
     vegetation_end = get_veg_stats(latest_image).getInfo()["properties"]["NDVIarea"]
@@ -286,6 +322,14 @@ for timeframe in timeframes:
     vegetation_share_start = (vegetation_start/project_area) * 100
     vegetation_share_end = (vegetation_end/project_area) * 100
     vegetation_share_change = vegetation_share_end - vegetation_share_start
+
+    # calculate both cloud images together
+    cloud_first_image_mask = cloud_image_first.eq(0)
+    cloud_latest_image_mask = cloud_image_latest.eq(0)
+    first_cloud_masked_image = first_image.updateMask(cloud_first_image_mask)
+    first_cloud_masked_image = first_cloud_masked_image.updateMask(cloud_latest_image_mask)
+    latest_cloud_masked_image = latest_image.updateMask(cloud_first_image_mask)
+    latest_cloud_masked_image = latest_cloud_masked_image.updateMask(cloud_latest_image_mask)
 
     # calculate difference between the two datasets
     growth_decline_img = ndvi_img_end.select('thres').subtract(ndvi_img_start.select('thres'))
@@ -298,8 +342,8 @@ for timeframe in timeframes:
     new_report = False
     # compare date of latest image with last recorded image
     # if there is new data it will set new_report to True
-    json_file_name = 'output/data.json'
-    screenshot_save_name = f'output/growth_decline_{timeframe}.png'
+    json_file_name = JSON_FILE_NAME
+    screenshot_save_name = f'{SCREENSHOT_SAVE_NAME}{timeframe}.png'
     with open(json_file_name, 'r', encoding='utf-8')as f:
         data = json.load(f)
         if timeframe not in data.keys():
@@ -325,8 +369,8 @@ for timeframe in timeframes:
             print('New data. Updating File.')
             logging.debug(f'New data in timeframe: {timeframe}')
             new_report = True
-            data[timeframe]['end_date'] = latest_image_date.format("dd.MM.YYYY").getInfo()
-            data[timeframe]['start_date'] = first_image_date.format("dd.MM.YYYY").getInfo()
+            data[timeframe]['end_date'] = latest_image_date
+            data[timeframe]['start_date'] = first_image_date
             data[timeframe]['start_date_satellite'] = first_image_date
             data[timeframe]['end_date_satellite'] = latest_image_date
             data[timeframe]['vegetation_start'] = vegetation_start
@@ -358,6 +402,7 @@ for timeframe in timeframes:
 
         my_map.add_ee_layer(white_polygon, geo_vis_params, 'Half opaque polygon')
         my_map.add_ee_layer(growth_decline_img, growth_vis_params, 'Growth and decline image')
+        my_map.add_ee_layer(first_cloud_masked_image.select('B1'), cloud_vis_params, 'Cloudcover image')
 
         # fit bounds for optimal zoom level
         my_map.fit_bounds(swapped_coords)
@@ -378,12 +423,23 @@ for timeframe in timeframes:
         driver.quit()
         # discard temporary data
         os.remove(html_map)
-if new_report:
-    sendEmail(sendtest, open_project_date('output/data.json'))
-    logging.debug(f'New email sent on {str(datetime.today())}')
-else:
-    logging.debug(f'No new email on {str(datetime.today())}')
-
+if not local_test_run:
+    if new_report:
+        sendEmail(sendtest, open_project_date('output/data.json'), 'credentials/credentials.json')
+        logging.debug(f'New email sent on {str(datetime.today())}')
+    else:
+        logging.debug(f'No new email on {str(datetime.today())}')
+if email_test_run:
+    sendEmail(sendtest, open_project_date('../output/data.json'), '../credentials/credentials.json')
+# loop to find the areas that have different cloud cover
+# for i in cloud_collection.getInfo()['features']:
+#     if i['properties']['nonCloudArea'] != 6769200:
+#         print(i['properties']['nonCloudArea'])
+# 2018-03-12 has clouds
+# 2019-03-22
+# 2019-04-01 nr 179
+# 6769200
 # TODO: current dataset with dataset 2016
 # TODO: remove clouds from calculation
 # TODO: chart changes changes over time
+# TODO: interaktive map in html email

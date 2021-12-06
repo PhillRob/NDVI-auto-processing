@@ -19,11 +19,11 @@ from email.mime.text import MIMEText
 
 # general smtp mailer vars
 fromaddr = "mailer@bp-la.com"
-sendtest = False
+sendtest = True
 
 
-def sendEmail(test, project_data):
-    with open('credentials/credentials.json') as c:
+def sendEmail(test, project_data, credentials_path):
+    with open(credentials_path) as c:
         credentials = json.load(c)
     apiToken = credentials['api_token']
 
