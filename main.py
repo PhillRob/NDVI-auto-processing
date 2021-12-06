@@ -68,6 +68,7 @@ def maskS2clouds(image):
 
   return image.updateMask(mask).divide(10000)
 
+
 def get_project_area(image):
     date = image.get('system:time_start')
     name = image.get('name')
@@ -84,6 +85,8 @@ def get_project_area(image):
         'system:time_start': date
         }
     )
+
+
 def get_cloud_stats(image):
     date = image.get('system:time_start')
     name = image.get('name')
@@ -101,15 +104,16 @@ def get_cloud_stats(image):
         'name': name,
         'system:time_start': date})
 
+
 # NDVI function
 def add_NDVI(image):
     ndvi = image.normalizedDifference(['B8', 'B4']).rename('ndvi')
     ndvi02 = ndvi.gt(0.2)
-    ndvi_img = image.addBands(ndvi).updateMask(ndvi02)  # TODO: low priority:vars not used
+    #ndvi_img = image.addBands(ndvi).updateMask(ndvi02)  # TODO: low priority:vars not used
     ndvi02_area = ndvi02.multiply(ee.Image.pixelArea()).rename('ndvi02_area')
 
     # adding area of vegetation as a band
-    ndvi_img = ndvi_img.addBands(ndvi02_area)  # TODO: low priority:vars not used
+    #ndvi_img = ndvi_img.addBands(ndvi02_area)  # TODO: low priority:vars not used
 
     # calculate ndvi > 0.2 area
     ndviStats = ndvi02_area.reduceRegion(
