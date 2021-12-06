@@ -15,10 +15,10 @@ import time
 local_test_run = False
 email_test_run = False
 
-if len(sys.argv) >= 1:
+if len(sys.argv) >= 2:
     # if test run is declared true through the command line we just run local tests
     local_test_run = int(sys.argv[1])
-if len(sys.argv) >= 2:
+if len(sys.argv) >= 3:
     email_test_run = int(sys.argv[2])
 
 logging.basicConfig(filename='ndvi-report-mailer.log', level=logging.DEBUG)
@@ -54,10 +54,10 @@ july_2016_end = ee.Date(py_date.replace(month=7))
 
 timeframes = {
     'two_weeks': {'start_date': (ee.Date(py_date - timedelta(days=14))), 'end_date': end_date},
-    # 'one_year': {'start_date': ee.Date(py_date.replace(year=py_date.year - 1)), 'end_date': end_date},
-    # 'nov_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=11, day=1)), 'end_date': ee.Date(py_date.replace(month=11))},
-    # 'july_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=7, day=1)), 'end_date': ee.Date(py_date.replace(month=7))},
-    # 'since_2016': {'start_date': ee.Date(py_date.replace(year=2016)), 'end_date': ee.Date(py_date)},
+    'one_year': {'start_date': ee.Date(py_date.replace(year=py_date.year - 1)), 'end_date': end_date},
+    'nov_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=11, day=1)), 'end_date': ee.Date(py_date.replace(month=11))},
+    'july_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=7, day=1)), 'end_date': ee.Date(py_date.replace(month=7))},
+    'since_2016': {'start_date': ee.Date(py_date.replace(year=2016)), 'end_date': ee.Date(py_date)},
 }
 
 
