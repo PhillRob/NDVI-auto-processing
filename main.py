@@ -50,8 +50,6 @@ start_date = ee.Date(py_date.replace(year=2016, month=7, day=1))
 end_date = ee_date
 
 
-july_2016_end = ee.Date(py_date.replace(month=7))
-
 timeframes = {
     'two_weeks': {'start_date': (ee.Date(py_date - timedelta(days=14))), 'end_date': end_date},
     'one_year': {'start_date': ee.Date(py_date.replace(year=py_date.year - 1)), 'end_date': end_date},
@@ -59,8 +57,9 @@ timeframes = {
     'july_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=7, day=1)), 'end_date': ee.Date(py_date.replace(month=7))},
     'since_2016': {'start_date': ee.Date(py_date.replace(year=2016)), 'end_date': ee.Date(py_date)},
 }
-
-
+two_weeks_image = ImageClass('two_weeks', (ee.Date(py_date - timedelta(days=14))), end_date)
+two_weeks_ndvi = NDVIImageClass(two_weeks_image.start_image, two_weeks_image.end_image)
+two_weeks_cloud = CloudClass(two_weeks_image.start_image, two_weeks_image.end_image)
 # cloud masking function
 def maskS2clouds(image):
   qa = image.select('QA60')
@@ -148,8 +147,6 @@ def add_NDVI(image):
     image = image.addBands(thres)
     image = image.addBands(b)
     return image
-
-
 def get_veg_stats(image):
     date = image.get('system:time_start')
     name = image.get('name')
@@ -173,8 +170,6 @@ def get_veg_stats(image):
         'name': name,
         'system:time_start': date})
     # the above is better area stats. so something similar for the overall area in the add_NDVI function
-
-
 def add_ee_layer(self, ee_object, vis_params, name):
     """Adds a method for displaying Earth Engine image tiles to folium map."""
     try:
@@ -221,7 +216,6 @@ def add_ee_layer(self, ee_object, vis_params, name):
 
     except Exception as e:
         print(f"Could not display {name}. Exception: {e}")
-
 
 # Add Earth Engine drawing method to folium.
 folium.Map.add_ee_layer = add_ee_layer
@@ -289,10 +283,7 @@ collection = (ee.ImageCollection('COPERNICUS/S2')
               .map(lambda image: image.clip(geometry))
               # .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
               )
-print('Generating NDVI')
-
 # select images from collection
-ndvi_collection = collection.map(add_NDVI)
 cloud_mask_collection = collection.map(maskS2clouds)
 cloud_collection = cloud_mask_collection.map(get_cloud_stats)
 
@@ -311,17 +302,17 @@ for timeframe in timeframes:
 
     project_area = get_project_area(first_image).getInfo()['properties']['project_area_size']
 
-    cloud_image_first = maskS2clouds(first_image)
-    cloud_image_latest = maskS2clouds(latest_image)
-
-
     vegetation_start = get_veg_stats(first_image).getInfo()["properties"]["NDVIarea"]
     vegetation_end = get_veg_stats(latest_image).getInfo()["properties"]["NDVIarea"]
     area_change = vegetation_end - vegetation_start
+
     relative_change = 100 - (vegetation_end/vegetation_start) * 100
     vegetation_share_start = (vegetation_start/project_area) * 100
     vegetation_share_end = (vegetation_end/project_area) * 100
     vegetation_share_change = vegetation_share_end - vegetation_share_start
+
+    cloud_image_first = maskS2clouds(first_image)
+    cloud_image_latest = maskS2clouds(latest_image)
 
     # calculate both cloud images together
     cloud_first_image_mask = cloud_image_first.eq(0)

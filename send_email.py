@@ -19,7 +19,7 @@ from email.mime.text import MIMEText
 
 # general smtp mailer vars
 fromaddr = "mailer@bp-la.com"
-sendtest = True
+sendtest = False
 
 
 def sendEmail(test, project_data, credentials_path):
