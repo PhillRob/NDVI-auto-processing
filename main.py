@@ -173,6 +173,8 @@ def get_veg_stats(image):
         'name': name,
         'system:time_start': date})
     # the above is better area stats. so something similar for the overall area in the add_NDVI function
+
+
 def add_ee_layer(self, ee_object, vis_params, name):
     """Adds a method for displaying Earth Engine image tiles to folium map."""
     try:
@@ -233,9 +235,11 @@ geo_vis_params = {
     'opacity': 0.5,
     'palette': ['FFFFFF'],
 }
+
 cloud_vis_params = {
     'palette': ['FFFFFF'],
 }
+
 
 # swap the coordinates because folium takes them the other way around
 swapped_coords = [[x[1], x[0]] for x in geometry['coordinates'][0][0]]
@@ -286,11 +290,13 @@ collection = (ee.ImageCollection('COPERNICUS/S2')
               .map(lambda image: image.clip(geometry))
               # .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
               )
+
 # select images from collection
 cloud_mask_collection = collection.map(maskS2clouds)
 cloud_collection = cloud_mask_collection.map(get_cloud_stats)
 
 image_list = []
+# loop through available data sets
 for timeframe in timeframes:
     timeframe_collection = collection.filterDate(timeframes[timeframe]['start_date'], timeframes[timeframe]['end_date'])
     ndvi_timeframe_collection = timeframe_collection.map(add_NDVI)
@@ -334,12 +340,15 @@ for timeframe in timeframes:
         relative_change = -relative_change
 
     new_report = False
+
     # compare date of latest image with last recorded image
     # if there is new data it will set new_report to True
     json_file_name = JSON_FILE_NAME
     screenshot_save_name = f'{SCREENSHOT_SAVE_NAME}{timeframe}.png'
+
     with open(json_file_name, 'r', encoding='utf-8')as f:
         data = json.load(f)
+
         if timeframe not in data.keys():
             print(f'Timeframe {timeframe} not yet covered. Will be generated.')
             new_report = True
@@ -359,7 +368,7 @@ for timeframe in timeframes:
             data[timeframe]['path'] = screenshot_save_name
             data[timeframe]['project_name'] = geo_data['name']
 
-        elif datetime.strptime(latest_image_date, '%d.%m.%Y') > datetime.strptime(data[timeframe]['end_date'],'%d.%m.%Y'):
+        elif datetime.strptime(latest_image_date, '%d.%m.%Y') > datetime.strptime(data[timeframe]['end_date'], '%d.%m.%Y'):
             print('New data. Updating File.')
             logging.debug(f'New data in timeframe: {timeframe}')
             new_report = True
@@ -382,7 +391,7 @@ for timeframe in timeframes:
     with open(json_file_name, 'w', encoding='utf-8') as f:
         json.dump(data, f)
 
-    # Define middle point of our map
+    # Define center of our map
     if new_report:
         html_map = 'map.html'
 
@@ -417,14 +426,17 @@ for timeframe in timeframes:
         driver.quit()
         # discard temporary data
         os.remove(html_map)
+
 if not local_test_run:
     if new_report:
         sendEmail(sendtest, open_project_date('output/data.json'), 'credentials/credentials.json')
         logging.debug(f'New email sent on {str(datetime.today())}')
     else:
         logging.debug(f'No new email on {str(datetime.today())}')
+
 if email_test_run:
     sendEmail(sendtest, open_project_date('../output/data.json'), '../credentials/credentials.json')
+
 # loop to find the areas that have different cloud cover
 # for i in cloud_collection.getInfo()['features']:
 #     if i['properties']['nonCloudArea'] != 6769200:
@@ -436,4 +448,4 @@ if email_test_run:
 # TODO: current dataset with dataset 2016
 # TODO: remove clouds from calculation
 # TODO: chart changes changes over time
-# TODO: interaktive map in html email
+# TODO: interactive map in html email
