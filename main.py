@@ -57,9 +57,6 @@ timeframes = {
     'july_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=7, day=1)), 'end_date': ee.Date(py_date.replace(month=7))},
     'since_2016': {'start_date': ee.Date(py_date.replace(year=2016)), 'end_date': ee.Date(py_date)},
 }
-two_weeks_image = ImageClass('two_weeks', (ee.Date(py_date - timedelta(days=14))), end_date)
-two_weeks_ndvi = NDVIImageClass(two_weeks_image.start_image, two_weeks_image.end_image)
-two_weeks_cloud = CloudClass(two_weeks_image.start_image, two_weeks_image.end_image)
 # cloud masking function
 def maskS2clouds(image):
   qa = image.select('QA60')
