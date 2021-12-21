@@ -3,14 +3,20 @@
 # packages package
 import logging
 
+import datetime
 import ee
-import os
 import folium
-from send_email import *
+import json
+import logging
+import os
+from fpdf import FPDF
 import selenium.webdriver
 from selenium.webdriver.firefox.options import Options
-import sys
 import time
+# import image_handler
+from send_email import *
+import sys
+
 
 local_test_run = False
 email_test_run = False
@@ -27,10 +33,12 @@ if local_test_run:
     GEOJSON_PATH = 'Diplomatic Quarter.geojson'
     JSON_FILE_NAME = '../output/data.json'
     SCREENSHOT_SAVE_NAME = f'../output/growth_decline_'
+    PDF_PATH = f'../output/pdf_growth_decline_{datetime.utcnow().strftime("%d.%m.%Y")}.pdf'
 else:
     GEOJSON_PATH = 'NDVI-auto-processing/Diplomatic Quarter.geojson'
     JSON_FILE_NAME = 'output/data.json'
     SCREENSHOT_SAVE_NAME = f'output/growth_decline_'
+    PDF_PATH = f'output/pdf_growth_decline_{datetime.utcnow().strftime("%d.%m.%Y")}.pdf'
 
 # ee.Authenticate()
 ee.Initialize()
@@ -49,7 +57,7 @@ ee_date = ee.Date(py_date)
 start_date = ee.Date(py_date.replace(year=2016, month=7, day=1))
 end_date = ee_date
 
-
+# 2018-03-12 has clouds
 timeframes = {
     'two_weeks': {'start_date': (ee.Date(py_date - timedelta(days=14))), 'end_date': end_date},
     'one_year': {'start_date': ee.Date(py_date.replace(year=py_date.year - 1)), 'end_date': end_date},
@@ -295,8 +303,16 @@ collection = (ee.ImageCollection('COPERNICUS/S2')
 # select images from collection
 cloud_mask_collection = collection.map(maskS2clouds)
 cloud_collection = cloud_mask_collection.map(get_cloud_stats)
-
 image_list = []
+
+processing_date = py_date.strftime('%d.%m.%Y')
+with open(JSON_FILE_NAME, 'r', encoding='utf-8') as f:
+    data = json.load(f)
+    if processing_date not in data.keys():
+        data[processing_date] = {}
+with open(JSON_FILE_NAME, 'w', encoding='utf-8') as f:
+    json.dump(data, f)
+
 # loop through available data sets
 for timeframe in timeframes:
     timeframe_collection = collection.filterDate(timeframes[timeframe]['start_date'], timeframes[timeframe]['end_date'])
@@ -304,9 +320,13 @@ for timeframe in timeframes:
     ndvi_img_start = ee.Image(ndvi_timeframe_collection.toList(ndvi_timeframe_collection.size()).get(0))
     ndvi_img_end = ee.Image(ndvi_timeframe_collection.toList(ndvi_timeframe_collection.size()).get(ndvi_timeframe_collection.size().subtract(1)))
 
-    latest_image = ee.Image(timeframe_collection.toList(timeframe_collection.size()).get(timeframe_collection.size().subtract(1)))
-    first_image = ee.Image(timeframe_collection.toList(timeframe_collection.size()).get(0))
-
+    # if there is no different image within that timeframe just take the next best
+    if timeframe_collection.size().getInfo() != 0:
+        latest_image = ee.Image(timeframe_collection.toList(timeframe_collection.size()).get(timeframe_collection.size().subtract(1)))
+        first_image = ee.Image(timeframe_collection.toList(timeframe_collection.size()).get(0))
+    else:
+        latest_image = ee.Image(collection.toList(collection.size()).get(1))
+        first_image = ee.Image(collection.toList(collection.size()).get(0))
     latest_image_date = latest_image.date().format("dd.MM.YYYY").getInfo()
     first_image_date = first_image.date().format("dd.MM.YYYY").getInfo()
 
@@ -345,48 +365,29 @@ for timeframe in timeframes:
     # compare date of latest image with last recorded image
     # if there is new data it will set new_report to True
     json_file_name = JSON_FILE_NAME
-    screenshot_save_name = f'{SCREENSHOT_SAVE_NAME}{timeframe}.png'
+    screenshot_save_name = f'{SCREENSHOT_SAVE_NAME}_{processing_date}_{timeframe}.png'
 
     with open(json_file_name, 'r', encoding='utf-8')as f:
         data = json.load(f)
 
-        if timeframe not in data.keys():
+        if timeframe not in data[processing_date].keys():
             print(f'Timeframe {timeframe} not yet covered. Will be generated.')
             new_report = True
-            data[timeframe] = {}
-            data[timeframe]['start_date'] = timeframes[timeframe]['start_date'].format("dd.MM.YYYY").getInfo()
-            data[timeframe]['end_date'] = timeframes[timeframe]['end_date'].format("dd.MM.YYYY").getInfo()
-            data[timeframe]['start_date_satellite'] = first_image_date
-            data[timeframe]['end_date_satellite'] = latest_image_date
-            data[timeframe]['vegetation_start'] = vegetation_start
-            data[timeframe]['vegetation_end'] = vegetation_end
-            data[timeframe]['vegetation_share_start'] = vegetation_share_start
-            data[timeframe]['vegetation_share_end'] = vegetation_share_end
-            data[timeframe]['vegetation_share_change'] = vegetation_share_change
-            data[timeframe]['project_area'] = project_area/(1000*1000)
-            data[timeframe]['area_change'] = area_change
-            data[timeframe]['relative_change'] = relative_change
-            data[timeframe]['path'] = screenshot_save_name
-            data[timeframe]['project_name'] = geo_data['name']
-
-        elif datetime.strptime(latest_image_date, '%d.%m.%Y') > datetime.strptime(data[timeframe]['end_date'], '%d.%m.%Y'):
-            print('New data. Updating File.')
-            logging.debug(f'New data in timeframe: {timeframe}')
-            new_report = True
-            data[timeframe]['end_date'] = latest_image_date
-            data[timeframe]['start_date'] = first_image_date
-            data[timeframe]['start_date_satellite'] = first_image_date
-            data[timeframe]['end_date_satellite'] = latest_image_date
-            data[timeframe]['vegetation_start'] = vegetation_start
-            data[timeframe]['vegetation_end'] = vegetation_end
-            data[timeframe]['vegetation_share_start'] = vegetation_share_start
-            data[timeframe]['vegetation_share_end'] = vegetation_share_end
-            data[timeframe]['vegetation_share_change'] = vegetation_share_change
-            data[timeframe]['project_area'] = project_area/(1000*1000)
-            data[timeframe]['area_change'] = area_change
-            data[timeframe]['relative_change'] = relative_change
-            data[timeframe]['path'] = screenshot_save_name
-            data[timeframe]['project_name'] = geo_data['name']
+            data[processing_date][timeframe] = {}
+            data[processing_date][timeframe]['start_date'] = timeframes[timeframe]['start_date'].format("dd.MM.YYYY").getInfo()
+            data[processing_date][timeframe]['end_date'] = timeframes[timeframe]['end_date'].format("dd.MM.YYYY").getInfo()
+            data[processing_date][timeframe]['start_date_satellite'] = first_image_date
+            data[processing_date][timeframe]['end_date_satellite'] = latest_image_date
+            data[processing_date][timeframe]['vegetation_start'] = vegetation_start
+            data[processing_date][timeframe]['vegetation_end'] = vegetation_end
+            data[processing_date][timeframe]['vegetation_share_start'] = vegetation_share_start
+            data[processing_date][timeframe]['vegetation_share_end'] = vegetation_share_end
+            data[processing_date][timeframe]['vegetation_share_change'] = vegetation_share_change
+            data[processing_date][timeframe]['project_area'] = project_area/(1000*1000)
+            data[processing_date][timeframe]['area_change'] = area_change
+            data[processing_date][timeframe]['relative_change'] = relative_change
+            data[processing_date][timeframe]['path'] = screenshot_save_name
+            data[processing_date][timeframe]['project_name'] = geo_data['name']
         else:
             print(f'All data for {timeframe} is up to date')
     with open(json_file_name, 'w', encoding='utf-8') as f:
@@ -428,6 +429,15 @@ for timeframe in timeframes:
         # discard temporary data
         os.remove(html_map)
 
+if new_report:
+    pdf = FPDF(orientation='L')
+    for i in image_list:
+        # generate pdf
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        pdf.image(i, x=10, y=10, w=1200 / 10, h=1200 / 10)
+    pdf.output(PDF_PATH)
+
 if not local_test_run:
     if new_report:
         sendEmail(sendtest, open_project_date('output/data.json'), 'credentials/credentials.json')
@@ -436,8 +446,7 @@ if not local_test_run:
         logging.debug(f'No new email on {str(datetime.today())}')
 
 if email_test_run:
-    sendEmail(sendtest, open_project_date('../output/data.json'), '../credentials/credentials.json')
-
+    sendEmail(True, open_project_date('../output/data.json')[processing_date], '../credentials/credentials.json')
 # loop to find the areas that have different cloud cover
 # for i in cloud_collection.getInfo()['features']:
 #     if i['properties']['nonCloudArea'] != 6769200:

@@ -82,4 +82,3 @@ def open_project_date(json_file):
             return data
         except:
             print('Could not open json file.')
-
