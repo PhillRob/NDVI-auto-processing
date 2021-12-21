@@ -324,11 +324,14 @@ for timeframe in timeframes:
     if timeframe_collection.size().getInfo() != 0:
         latest_image = ee.Image(timeframe_collection.toList(timeframe_collection.size()).get(timeframe_collection.size().subtract(1)))
         first_image = ee.Image(timeframe_collection.toList(timeframe_collection.size()).get(0))
+        latest_image_date = latest_image.date().format("dd.MM.YYYY").getInfo()
+        first_image_date = first_image.date().format("dd.MM.YYYY").getInfo()
     else:
         latest_image = ee.Image(collection.toList(collection.size()).get(1))
         first_image = ee.Image(collection.toList(collection.size()).get(0))
-    latest_image_date = latest_image.date().format("dd.MM.YYYY").getInfo()
-    first_image_date = first_image.date().format("dd.MM.YYYY").getInfo()
+        latest_image_date = timeframes[timeframe]['end_date'].format("dd.MM.YYYY").getInfo()
+        first_image_date = timeframes[timeframe]['start_date'].format("dd.MM.YYYY").getInfo()
+
 
     project_area = get_project_area(first_image).getInfo()['properties']['project_area_size']
 
