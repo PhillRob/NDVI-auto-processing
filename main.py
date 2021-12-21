@@ -443,7 +443,7 @@ if new_report:
 
 if not local_test_run:
     if new_report:
-        sendEmail(sendtest, open_project_date('output/data.json'), 'credentials/credentials.json')
+        sendEmail(sendtest, open_project_date('output/data.json')[processing_date], 'credentials/credentials.json')
         logging.debug(f'New email sent on {str(datetime.today())}')
     else:
         logging.debug(f'No new email on {str(datetime.today())}')
