@@ -446,7 +446,7 @@ if not local_test_run:
         logging.debug(f'No new email on {str(datetime.today())}')
 
 if email_test_run:
-    sendEmail(True, open_project_date('../output/data.json')[processing_date], '../credentials/credentials.json')
+    sendEmail(sendtest, open_project_date('../output/data.json')[processing_date], '../credentials/credentials.json')
 # loop to find the areas that have different cloud cover
 # for i in cloud_collection.getInfo()['features']:
 #     if i['properties']['nonCloudArea'] != 6769200:
