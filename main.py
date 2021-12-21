@@ -461,13 +461,13 @@ if new_report:
 
 if not local_test_run:
     if new_report:
-        sendEmail(sendtest, open_project_date('output/data.json')[processing_date], 'credentials/credentials.json')
+        sendEmail(sendtest, open_project_date('output/data.json')[processing_date], 'credentials/credentials.json', PDF_PATH)
         logging.debug(f'New email sent on {str(datetime.today())}')
     else:
         logging.debug(f'No new email on {str(datetime.today())}')
 
 if email_test_run:
-    sendEmail(sendtest, open_project_date('../output/data.json')[processing_date], '../credentials/credentials.json')
+    sendEmail(sendtest, open_project_date('../output/data.json')[processing_date], '../credentials/credentials.json', PDF_PATH)
 # loop to find the areas that have different cloud cover
 # for i in cloud_collection.getInfo()['features']:
 #     if i['properties']['nonCloudArea'] != 6769200:
@@ -476,7 +476,6 @@ if email_test_run:
 # 2019-03-22
 # 2019-04-01 nr 179
 # 6769200
-# TODO: current dataset with dataset 2016
 # TODO: remove clouds from calculation
 # TODO: chart changes changes over time
 # TODO: interactive map in html email

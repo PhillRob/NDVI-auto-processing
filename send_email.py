@@ -7,6 +7,7 @@ import logging
 from datetime import datetime, timedelta
 import smtplib
 import json
+from email.mime.application import MIMEApplication
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -22,7 +23,7 @@ fromaddr = "mailer@bp-la.com"
 sendtest = False
 
 
-def sendEmail(test, project_data, credentials_path):
+def sendEmail(test, project_data, credentials_path, path_to_pdf):
     # mapping different timeframes to the corresponding text
     head_text = {
         'two_weeks': 'One week',
@@ -54,25 +55,29 @@ def sendEmail(test, project_data, credentials_path):
     msgRoot.attach(msgAlternative)
 
     text = 'Dear all, <br> Here we report on the the vegetation change in the Diplomatic Quarter. The results are based on the analysis of the Sentinel 2 Satellite data. The email is provided as soon as new data becomes available every 7-14 days.<br>'
-    for timeframe in project_data:
-        # Next, we attach the body of the email to the MIME message:
-        text += f'<h2>{project_data[timeframe]["project_name"]}: {head_text[timeframe]} vegetation evaluation ({project_data[timeframe]["start_date_satellite"]} to {project_data[timeframe]["end_date_satellite"]}) </h2>'
-        text += f'<img src="cid:image1{timeframe}"><br>'
-        text += f'Project area: {project_data[timeframe]["project_area"]:.2f} km²<br>Vegetation cover ({project_data[timeframe]["start_date"]}): {project_data[timeframe]["vegetation_start"]:,} m² ({project_data[timeframe]["vegetation_share_start"]:.2f}%)<br>Vegetation cover ({project_data[timeframe]["end_date"]}): {project_data[timeframe]["vegetation_end"]:,} m² ({project_data[timeframe]["vegetation_share_end"]:.2f}%)<br>Net vegetation change: {project_data[timeframe]["area_change"]:,} m² ({project_data[timeframe]["vegetation_share_change"]:.2f}%)<br><br>'
-
-        # This example assumes the image is in the current directory
-        fp = open(project_data[timeframe]['path'], 'rb')
-        msgImage = MIMEImage(fp.read())
-        fp.close()
-
-        # Define the image's ID as referenced above
-        msgImage.add_header('Content-ID', f'<image1{timeframe}>')
-        msgRoot.attach(msgImage)
+    # for timeframe in project_data:
+    #     # Next, we attach the body of the email to the MIME message:
+    #     text += f'<h2>{project_data[timeframe]["project_name"]}: {head_text[timeframe]} vegetation evaluation ({project_data[timeframe]["start_date_satellite"]} to {project_data[timeframe]["end_date_satellite"]}) </h2>'
+    #     text += f'<img src="cid:image1{timeframe}"><br>'
+    #     text += f'Project area: {project_data[timeframe]["project_area"]:.2f} km²<br>Vegetation cover ({project_data[timeframe]["start_date"]}): {project_data[timeframe]["vegetation_start"]:,} m² ({project_data[timeframe]["vegetation_share_start"]:.2f}%)<br>Vegetation cover ({project_data[timeframe]["end_date"]}): {project_data[timeframe]["vegetation_end"]:,} m² ({project_data[timeframe]["vegetation_share_end"]:.2f}%)<br>Net vegetation change: {project_data[timeframe]["area_change"]:,} m² ({project_data[timeframe]["vegetation_share_change"]:.2f}%)<br><br>'
+    #
+    #     # This example assumes the image is in the current directory
+    #     fp = open(project_data[timeframe]['path'], 'rb')
+    #     msgImage = MIMEImage(fp.read())
+    #     fp.close()
+    #
+    #     # Define the image's ID as referenced above
+    #     msgImage.add_header('Content-ID', f'<image1{timeframe}>')
+    #     msgRoot.attach(msgImage)
     msgText = MIMEText(
         text, 'html'
     )
 
     msgAlternative.attach(msgText)
+    with open(path_to_pdf, 'rb') as f:
+        pdf_attach = MIMEApplication(f.read(), _subtype='pdf')
+    pdf_attach.add_header('Content-Disposition', 'attachment', filename=str(path_to_pdf))
+    msgRoot.attach(pdf_attach)
     # For sending the mail, we have to convert the object to a string, and then use the same prodecure as above to send
     # using the SMTP server.
     server = smtplib.SMTP('smtp.1und1.de', 587)
