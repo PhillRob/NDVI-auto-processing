@@ -65,6 +65,13 @@ timeframes = {
     'july_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=7, day=1)), 'end_date': ee.Date(py_date.replace(month=7))},
     'since_2016': {'start_date': ee.Date(py_date.replace(year=2016)), 'end_date': ee.Date(py_date)},
 }
+head_text = {
+    'two_weeks': 'One week',
+    'one_year': 'One year',
+    'nov_2016': 'Five year winter',
+    'july_2016': 'Five year summer',
+    'since_2016': 'Five year'
+}
 # cloud masking function
 def maskS2clouds(image):
   qa = image.select('QA60')
@@ -314,6 +321,7 @@ with open(JSON_FILE_NAME, 'w', encoding='utf-8') as f:
     json.dump(data, f)
 
 # loop through available data sets
+pdf = FPDF(orientation='L', format=(1300, 1200), unit='pt')
 for timeframe in timeframes:
     timeframe_collection = collection.filterDate(timeframes[timeframe]['start_date'], timeframes[timeframe]['end_date'])
     ndvi_timeframe_collection = timeframe_collection.map(add_NDVI)
@@ -431,14 +439,24 @@ for timeframe in timeframes:
         driver.quit()
         # discard temporary data
         os.remove(html_map)
+        pdf.add_page()
+        pdf.set_font('Arial', size=12)
+        pdf.cell(
+            txt=f'{data[processing_date][timeframe]["project_name"]}: {head_text[timeframe]} vegetation evaluation ({data[processing_date][timeframe]["start_date_satellite"]} to {data[processing_date][timeframe]["end_date_satellite"]})',
+            ln=1)
+        pdf.cell(txt=f'Project area: {data[processing_date][timeframe]["project_area"]:.2f} km²', ln=1)
+        pdf.cell(
+            txt=f'Vegetation cover ({data[processing_date][timeframe]["start_date"]}): {data[processing_date][timeframe]["vegetation_start"]:,} m² ({data[processing_date][timeframe]["vegetation_share_start"]:.2f}%)',
+            ln=1)
+        pdf.cell(
+            txt=f'Vegetation cover ({data[processing_date][timeframe]["end_date"]}): {data[processing_date][timeframe]["vegetation_end"]:,} m² ({data[processing_date][timeframe]["vegetation_share_end"]:.2f}%)',
+            ln=1)
+        pdf.cell(
+            txt=f'Net vegetation change: {data[processing_date][timeframe]["area_change"]:,} m² ({data[processing_date][timeframe]["vegetation_share_change"]:.2f}%)',
+            ln=1)
+        pdf.image(screenshot_save_name, x=0, y=100, w=1200, h=1200)
 
 if new_report:
-    pdf = FPDF(orientation='L')
-    for i in image_list:
-        # generate pdf
-        pdf.add_page()
-        pdf.set_font("Arial", size=12)
-        pdf.image(i, x=10, y=10, w=1200 / 10, h=1200 / 10)
     pdf.output(PDF_PATH)
 
 if not local_test_run:
