@@ -23,6 +23,14 @@ sendtest = False
 
 
 def sendEmail(test, project_data, credentials_path):
+    # mapping different timeframes to the corresponding text
+    head_text = {
+        'two_weeks': 'One week',
+        'one_year': 'One year',
+        'nov_2016': 'Five year winter',
+        'july_2016': 'Five year summer',
+        'since_2016': 'Five year'
+    }
     with open(credentials_path) as c:
         credentials = json.load(c)
     apiToken = credentials['api_token']
@@ -48,7 +56,7 @@ def sendEmail(test, project_data, credentials_path):
     text = 'Dear all, <br> Here we report on the the vegetation change in the Diplomatic Quarter. The results are based on the analysis of the Sentinel 2 Satellite data. The email is provided as soon as new data becomes available every 7-14 days.<br>'
     for timeframe in project_data:
         # Next, we attach the body of the email to the MIME message:
-        text += f'<h2>{project_data[timeframe]["project_name"]}: Vegetation change from {project_data[timeframe]["start_date_satellite"]} to {project_data[timeframe]["end_date_satellite"]} </h2>'
+        text += f'<h2>{project_data[timeframe]["project_name"]}: {head_text[timeframe]} vegetation evaluation ({project_data[timeframe]["start_date_satellite"]} to {project_data[timeframe]["end_date_satellite"]}) </h2>'
         text += f'<img src="cid:image1{timeframe}"><br>'
         text += f'Project area: {project_data[timeframe]["project_area"]:.2f} km²<br>Vegetation cover ({project_data[timeframe]["start_date"]}): {project_data[timeframe]["vegetation_start"]:,} m² ({project_data[timeframe]["vegetation_share_start"]:.2f}%)<br>Vegetation cover ({project_data[timeframe]["end_date"]}): {project_data[timeframe]["vegetation_end"]:,} m² ({project_data[timeframe]["vegetation_share_end"]:.2f}%)<br>Net vegetation change: {project_data[timeframe]["area_change"]:,} m² ({project_data[timeframe]["vegetation_share_change"]:.2f}%)<br><br>'
 
