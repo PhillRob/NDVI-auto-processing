@@ -248,31 +248,21 @@ def generate_pdf(data, pdf_name):
         'july_2016': 'Five year summer',
         'since_2016': 'Five year'
     }
-    pdf = FPDF(orientation='L', format=(1400, 1200), unit='pt')
+    pdf = FPDF(orientation='L', format=(1430, 1200), unit='pt')
     for timeframe in data.keys():
         pdf.add_page()
         pdf.set_font('Arial', 'B',  size=26)
         pdf.cell(
-            txt=f'{data[timeframe]["project_name"]}: {head_text[timeframe]} vegetation evaluation ({data[timeframe]["start_date_satellite"]} to {data[timeframe]["end_date_satellite"]})',
+            txt=f'{data[timeframe]["project_name"]}: {head_text[timeframe]} vegetation evaluation ({data[timeframe]["start_date_satellite"]} to {data[timeframe]["end_date_satellite"]})\n',
             ln=2, w=0)
         pdf.set_font('Arial', size=24)
-        pdf.cell(txt=f'Project area: {data[timeframe]["project_area"]:.2f} km²', ln=2, w=0)
-        pdf.cell(
-            txt=f'Vegetation cover ({data[timeframe]["start_date"]}): {data[timeframe]["vegetation_start"]:,} m² ({data[timeframe]["vegetation_share_start"]:.2f}%)',
-            ln=2, w=0)
-        pdf.cell(
-            txt=f'Vegetation cover ({data[timeframe]["end_date"]}): {data[timeframe]["vegetation_end"]:,} m² ({data[timeframe]["vegetation_share_end"]:.2f}%)',
-            ln=2, w=0)
-        pdf.cell(
-            txt=f'Net vegetation change: {data[timeframe]["area_change"]:,} m² ({data[timeframe]["vegetation_share_change"]:.2f}%)',
-            ln=2, w=0)
-        pdf.cell(
-            txt=f'Vegetation gain: {data[timeframe]["vegetation_gain"]:,} m² ({data[timeframe]["vegetation_gain_relative"]:.2f}%)',
-            ln=2, w=0)
-        pdf.cell(
-            txt=f'Vegetation loss: {data[timeframe]["vegetation_loss"]:,} m² ({data[timeframe]["vegetation_loss_relative"]:.2f}%)',
-            ln=2, w=0)
-        pdf.image(data[timeframe]["path"], x=0, y=200, w=1200, h=1200)
+        pdf.multi_cell(w=0, txt=f'\nProject area: {data[timeframe]["project_area"]:.2f} km²\n\
+Vegetation cover ({data[timeframe]["start_date"]}): {data[timeframe]["vegetation_start"]:,} m² ({data[timeframe]["vegetation_share_start"]:.2f}%)\n\
+Vegetation cover ({data[timeframe]["end_date"]}): {data[timeframe]["vegetation_end"]:,} m² ({data[timeframe]["vegetation_share_end"]:.2f}%)\n\
+Net vegetation change: {data[timeframe]["area_change"]:,} m² ({data[timeframe]["vegetation_share_change"]:.2f}%)\n\
+Vegetation gain: {data[timeframe]["vegetation_gain"]:,} m² ({data[timeframe]["vegetation_gain_relative"]:.2f}%)\n\
+Vegetation loss: {data[timeframe]["vegetation_loss"]:,} m² ({data[timeframe]["vegetation_loss_relative"]:.2f}%)\n')
+        pdf.image(data[timeframe]["path"], x=0, y=230, w=1200, h=1200)
     pdf.output(pdf_name)
 
 # Add Earth Engine drawing method to folium.
