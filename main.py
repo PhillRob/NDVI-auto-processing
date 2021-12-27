@@ -256,7 +256,7 @@ def generate_pdf(data, pdf_name):
             txt=f'{data[timeframe]["project_name"]}: {head_text[timeframe]} vegetation evaluation ({data[timeframe]["start_date_satellite"]} to {data[timeframe]["end_date_satellite"]})\n',
             ln=2, w=0)
         pdf.set_font('Arial', size=24)
-        pdf.multi_cell(w=0, txt=f'\nProject area: {data[timeframe]["project_area"]:.2f} km²\n\
+        pdf.multi_cell(w=0, h=0, txt=f'\nProject area: {data[timeframe]["project_area"]:.2f} km²\n\
 Vegetation cover ({data[timeframe]["start_date"]}): {data[timeframe]["vegetation_start"]:,} m² ({data[timeframe]["vegetation_share_start"]:.2f}%)\n\
 Vegetation cover ({data[timeframe]["end_date"]}): {data[timeframe]["vegetation_end"]:,} m² ({data[timeframe]["vegetation_share_end"]:.2f}%)\n\
 Net vegetation change: {data[timeframe]["area_change"]:,} m² ({data[timeframe]["vegetation_share_change"]:.2f}%)\n\
