@@ -34,11 +34,13 @@ if local_test_run:
     JSON_FILE_NAME = '../output/data.json'
     SCREENSHOT_SAVE_NAME = f'../output/growth_decline_'
     PDF_PATH = f'../output/pdf_growth_decline_{datetime.utcnow().strftime("%d.%m.%Y")}.pdf'
+    CREDENTIALS_PATH = '../credentials/credentials.json'
 else:
     GEOJSON_PATH = 'NDVI-auto-processing/Diplomatic Quarter.geojson'
     JSON_FILE_NAME = 'output/data.json'
     SCREENSHOT_SAVE_NAME = f'output/growth_decline_'
     PDF_PATH = f'output/pdf_growth_decline_{datetime.utcnow().strftime("%d.%m.%Y")}.pdf'
+    CREDENTIALS_PATH = 'credentials/credentials.json'
 
 # ee.Authenticate()
 ee.Initialize()
@@ -237,6 +239,42 @@ def add_ee_layer(self, ee_object, vis_params, name):
     except Exception as e:
         print(f"Could not display {name}. Exception: {e}")
 
+# not finished yet
+def generate_pdf(data, pdf_name):
+    head_text = {
+        'two_weeks': 'One week',
+        'one_year': 'One year',
+        'nov_2016': 'Five year winter',
+        'july_2016': 'Five year summer',
+        'since_2016': 'Five year'
+    }
+    pdf = FPDF(orientation='L', format=(1400, 1200), unit='pt')
+    for timeframe in data.keys():
+        pdf.add_page()
+        pdf.set_font('Arial', 'B',  size=26)
+        pdf.cell(
+            txt=f'{data[timeframe]["project_name"]}: {head_text[timeframe]} vegetation evaluation ({data[timeframe]["start_date_satellite"]} to {data[timeframe]["end_date_satellite"]})',
+            ln=1)
+        pdf.set_font('Arial', size=24)
+        pdf.cell(txt=f'Project area: {data[timeframe]["project_area"]:.2f} km²', ln=1)
+        pdf.cell(
+            txt=f'Vegetation cover ({data[timeframe]["start_date"]}): {data[timeframe]["vegetation_start"]:,} m² ({data[timeframe]["vegetation_share_start"]:.2f}%)',
+            ln=1)
+        pdf.cell(
+            txt=f'Vegetation cover ({data[timeframe]["end_date"]}): {data[timeframe]["vegetation_end"]:,} m² ({data[timeframe]["vegetation_share_end"]:.2f}%)',
+            ln=1)
+        pdf.cell(
+            txt=f'Net vegetation change: {data[timeframe]["area_change"]:,} m² ({data[timeframe]["vegetation_share_change"]:.2f}%)',
+            ln=1)
+        pdf.cell(
+            txt=f'Vegetation gain: {data[timeframe]["vegetation_gain"]:,} m² ({data[timeframe]["vegetation_gain_relative"]:.2f}%)',
+            ln=1)
+        pdf.cell(
+            txt=f'Vegetation loss: {data[timeframe]["vegetation_loss"]:,} m² ({data[timeframe]["vegetation_loss_relative"]:.2f}%)',
+            ln=1)
+        pdf.image(data[timeframe]["path"], x=0, y=200, w=1200, h=1200)
+    pdf.output(pdf_name)
+
 # Add Earth Engine drawing method to folium.
 folium.Map.add_ee_layer = add_ee_layer
 
@@ -306,7 +344,7 @@ collection = (ee.ImageCollection('COPERNICUS/S2')
               .map(lambda image: image.clip(geometry))
               .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 3))
               )
-
+ndvi_collection = collection.map(add_NDVI)
 # select images from collection
 cloud_mask_collection = collection.map(maskS2clouds)
 cloud_collection = cloud_mask_collection.map(get_cloud_stats)
@@ -321,7 +359,6 @@ with open(JSON_FILE_NAME, 'w', encoding='utf-8') as f:
     json.dump(data, f)
 
 # loop through available data sets
-pdf = FPDF(orientation='L', format=(1300, 1200), unit='pt')
 for timeframe in timeframes:
     timeframe_collection = collection.filterDate(timeframes[timeframe]['start_date'], timeframes[timeframe]['end_date'])
     ndvi_timeframe_collection = timeframe_collection.map(add_NDVI)
@@ -335,8 +372,14 @@ for timeframe in timeframes:
         latest_image_date = latest_image.date().format("dd.MM.YYYY").getInfo()
         first_image_date = first_image.date().format("dd.MM.YYYY").getInfo()
     else:
-        latest_image = ee.Image(collection.toList(collection.size()).get(1))
-        first_image = ee.Image(collection.toList(collection.size()).get(0))
+        latest_image = ee.Image(collection.toList(collection.size()).get(collection.size().subtract(1)))
+        first_image = ee.Image(collection.toList(collection.size()).get(collection.size().subtract(2)))
+
+        ndvi_img_start = ee.Image(ndvi_collection.toList(ndvi_collection.size()).get(
+            ndvi_timeframe_collection.size().subtract(2)))
+        ndvi_img_end = ee.Image(ndvi_collection.toList(ndvi_collection.size()).get(
+            ndvi_timeframe_collection.size().subtract(1)))
+
         latest_image_date = timeframes[timeframe]['end_date'].format("dd.MM.YYYY").getInfo()
         first_image_date = timeframes[timeframe]['start_date'].format("dd.MM.YYYY").getInfo()
 
@@ -366,7 +409,16 @@ for timeframe in timeframes:
     # calculate difference between the two datasets
     growth_decline_img = ndvi_img_end.select('thres').subtract(ndvi_img_start.select('thres'))
     growth_decline_img_mask = growth_decline_img.neq(0)
+    growth_mask = growth_decline_img.eq(1)
+    decline_mask = growth_decline_img.eq(-1)
+    growth_img = growth_decline_img.updateMask(growth_mask)
+    decline_img = growth_decline_img.updateMask(decline_mask)
     growth_decline_img = growth_decline_img.updateMask(growth_decline_img_mask)
+
+    vegetation_loss = ee.Number(decline_img.reduceRegion(reducer=ee.Reducer.count())).getInfo()['thres'] * 100
+    vegetation_gain = ee.Number(growth_img.reduceRegion(reducer=ee.Reducer.count())).getInfo()['thres'] * 100
+    vegetation_loss_relative = -vegetation_loss/project_area * 100
+    vegetation_gain_relative = vegetation_gain / project_area * 100
 
     if area_change < 0:
         relative_change = -relative_change
@@ -397,6 +449,10 @@ for timeframe in timeframes:
             data[processing_date][timeframe]['project_area'] = project_area/(1000*1000)
             data[processing_date][timeframe]['area_change'] = area_change
             data[processing_date][timeframe]['relative_change'] = relative_change
+            data[processing_date][timeframe]['vegetation_gain'] = vegetation_gain
+            data[processing_date][timeframe]['vegetation_loss'] = vegetation_loss
+            data[processing_date][timeframe]['vegetation_gain_relative'] = vegetation_gain_relative
+            data[processing_date][timeframe]['vegetation_loss_relative'] = vegetation_loss_relative
             data[processing_date][timeframe]['path'] = screenshot_save_name
             data[processing_date][timeframe]['project_name'] = geo_data['name']
         else:
@@ -439,35 +495,19 @@ for timeframe in timeframes:
         driver.quit()
         # discard temporary data
         os.remove(html_map)
-        pdf.add_page()
-        pdf.set_font('Arial', size=12)
-        pdf.cell(
-            txt=f'{data[processing_date][timeframe]["project_name"]}: {head_text[timeframe]} vegetation evaluation ({data[processing_date][timeframe]["start_date_satellite"]} to {data[processing_date][timeframe]["end_date_satellite"]})',
-            ln=1)
-        pdf.cell(txt=f'Project area: {data[processing_date][timeframe]["project_area"]:.2f} km²', ln=1)
-        pdf.cell(
-            txt=f'Vegetation cover ({data[processing_date][timeframe]["start_date"]}): {data[processing_date][timeframe]["vegetation_start"]:,} m² ({data[processing_date][timeframe]["vegetation_share_start"]:.2f}%)',
-            ln=1)
-        pdf.cell(
-            txt=f'Vegetation cover ({data[processing_date][timeframe]["end_date"]}): {data[processing_date][timeframe]["vegetation_end"]:,} m² ({data[processing_date][timeframe]["vegetation_share_end"]:.2f}%)',
-            ln=1)
-        pdf.cell(
-            txt=f'Net vegetation change: {data[processing_date][timeframe]["area_change"]:,} m² ({data[processing_date][timeframe]["vegetation_share_change"]:.2f}%)',
-            ln=1)
-        pdf.image(screenshot_save_name, x=0, y=100, w=1200, h=1200)
 
 if new_report:
-    pdf.output(PDF_PATH)
+    generate_pdf(data[processing_date], PDF_PATH)
 
 if not local_test_run:
     if new_report:
-        sendEmail(sendtest, open_project_date('output/data.json')[processing_date], 'credentials/credentials.json', PDF_PATH)
+        sendEmail(sendtest, open_project_date(JSON_FILE_NAME)[processing_date], CREDENTIALS_PATH, PDF_PATH)
         logging.debug(f'New email sent on {str(datetime.today())}')
     else:
         logging.debug(f'No new email on {str(datetime.today())}')
 
 if email_test_run:
-    sendEmail(sendtest, open_project_date('../output/data.json')[processing_date], '../credentials/credentials.json', PDF_PATH)
+    sendEmail(sendtest, open_project_date(JSON_FILE_NAME)[processing_date], CREDENTIALS_PATH, PDF_PATH)
 # loop to find the areas that have different cloud cover
 # for i in cloud_collection.getInfo()['features']:
 #     if i['properties']['nonCloudArea'] != 6769200:
@@ -476,6 +516,7 @@ if email_test_run:
 # 2019-03-22
 # 2019-04-01 nr 179
 # 6769200
+# TODO: add vegetation gain and loss to pdf / test on server
 # TODO: remove clouds from calculation
 # TODO: chart changes changes over time
 # TODO: interactive map in html email
