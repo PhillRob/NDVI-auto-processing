@@ -9,11 +9,11 @@ import folium
 import json
 import logging
 import os
+import PIL
 from fpdf import FPDF
 import selenium.webdriver
 from selenium.webdriver.firefox.options import Options
 import time
-# import image_handler
 from send_email import *
 import sys
 
@@ -74,6 +74,8 @@ head_text = {
     'july_2016': 'Five year summer',
     'since_2016': 'Five year'
 }
+logos = ['static/bpla_logo_blau.png', 'static/bpla_logo_rot.png']
+
 # cloud masking function
 def maskS2clouds(image):
   qa = image.select('QA60')
@@ -239,57 +241,108 @@ def add_ee_layer(self, ee_object, vis_params, name):
     except Exception as e:
         print(f"Could not display {name}. Exception: {e}")
 
-def generate_pdf(data, pdf_name):
-    head_text = {
-        'two_weeks': 'One week',
-        'one_year': 'One year',
-        'nov_2016': 'Five year winter',
-        'july_2016': 'Five year summer',
-        'since_2016': 'Five year'
-    }
-    # point in cm
-    x = 28.3464566929
+def pdf_add_image(pdf, image, pos, size):
+    try:
+        pdf.image(image, x=pos[0], y=pos[1], w=size[0], h=size[1])
+    except Exception as e:
+        print(f'Could not add image {image}. Error: {e}')
 
-    pdf = FPDF(orientation='L', format=(1430, 1200), unit='pt')
+
+def generate_pdf(pdf, data, pdf_name, logos, head_text):
+    # equates to one cm
+    cm_in_pt = 28.3464566929
+    font_size_small = 12
+    font_size_normal = 24
+    font_size_heading = 26
+    font_size_intro_heading = 28
+    logo_size = (int(cm_in_pt * 5), int(cm_in_pt * 2))
+    logo_size_red = (PIL.Image.open(logos[1]).width/10,PIL.Image.open(logos[1]).height/10)
+    # set starting point
+    x = cm_in_pt
+    y = cm_in_pt
+    # intro page
+    pdf.add_page()
+    pdf.set_font('Arial', 'B', size=font_size_intro_heading)
+    pdf_add_image(pdf, logos[0], (x, y), logo_size)
+    pdf_add_image(pdf, logos[1], (pdf.w-(logo_size_red[0] + x), y), logo_size_red)
+    y += logo_size[1] + font_size_intro_heading * 2
+    pdf.set_xy(x, y)
+    pdf.cell(
+        txt=f'{geo_data["name"]}',
+        ln=1, w=0)
+    y += font_size_intro_heading * 2
+    pdf.set_xy(x, y)
+    pdf.cell(
+        txt=f'Vegetation Cover Change Report',
+        ln=1, w=0)
+    y += font_size_intro_heading * 2
+    pdf.set_xy(x, y)
+    pdf.set_font('Arial', size=font_size_normal)
+    pdf.cell(
+        txt=f'{processing_date}',
+        ln=1, w=0)
+    y += font_size_normal * 2
+    pdf.set_xy(x, y)
+    pdf.multi_cell(
+        txt=f'This report summarises the vegetation change for 5 time periods in the {geo_data["name"]}. The results are based on the analysis of the Sentinel 2 Satellite data. The report is updated if new data becomes available (approximately every 7-14 days).',
+        w=0)
+    y = pdf.h / 3
+    pdf.set_xy(x, y)
+    for timeframe in data.keys():
+        pdf.cell(
+            txt=f'-\t{head_text[timeframe]} vegetation evaluation ({data[timeframe]["start_date_satellite"]} to {data[timeframe]["end_date_satellite"]})',
+            ln=1, w=0)
+        y += font_size_normal * 2
+        pdf.set_xy(x, y)
+    y = pdf.h - 70
+    pdf.set_xy(x,y)
+    pdf.set_font('Arial', 'B', size=font_size_small)
+    pdf.cell(
+        txt=f'BPLA GmbH',
+        ln=1, w=0)
 
     for timeframe in data.keys():
         pdf.add_page()
-        pdf.set_font('Arial', 'B',  size=26)
-        y = 28.3464566929
-        pdf.set_xy(x,y)
+        pdf.set_font('Arial', 'B',  size=font_size_heading)
+        y = cm_in_pt
+        pdf.set_xy(x, y)
+        pdf_add_image(pdf, logos[0], (x, y), logo_size)
+        pdf_add_image(pdf, logos[1], (pdf.w-(logo_size_red[0] + x), y), logo_size_red)
+        y += logo_size[1]
+        pdf.set_xy(x, y)
         pdf.cell(
             txt=f'{data[timeframe]["project_name"]}: {head_text[timeframe]} vegetation evaluation ({data[timeframe]["start_date_satellite"]} to {data[timeframe]["end_date_satellite"]})',
             ln=1, w=0)
-        y+=26
-        pdf.set_xy(x,y)
-        pdf.set_font('Arial', size=24)
+        y += font_size_heading
+        pdf.set_xy(x, y)
+        pdf.set_font('Arial', size=font_size_normal)
         pdf.cell(txt=f'Project area: {data[timeframe]["project_area"]:.2f} km²', ln=1, w=0)
-        y+=24
-        pdf.set_xy(x,y)
+        y += font_size_normal
+        pdf.set_xy(x, y)
         pdf.cell(
             txt=f'Vegetation cover ({data[timeframe]["start_date"]}): {data[timeframe]["vegetation_start"]:,} m² ({data[timeframe]["vegetation_share_start"]:.2f}%)',
             ln=1, w=0)
-        y+=24
-        pdf.set_xy(x,y)
+        y += font_size_normal
+        pdf.set_xy(x, y)
         pdf.cell(
             txt=f'Vegetation cover ({data[timeframe]["end_date"]}): {data[timeframe]["vegetation_end"]:,} m² ({data[timeframe]["vegetation_share_end"]:.2f}%)',
             ln=1, w=0)
-        y+=24
-        pdf.set_xy(x,y)
+        y += font_size_normal
+        pdf.set_xy(x, y)
         pdf.cell(
             txt=f'Net vegetation change: {data[timeframe]["area_change"]:,} m² ({data[timeframe]["vegetation_share_change"]:.2f}%)',
             ln=1, w=0)
-        y+=24
-        pdf.set_xy(x,y)
+        y += font_size_normal
+        pdf.set_xy(x, y)
         pdf.cell(
             txt=f'Vegetation gain: {data[timeframe]["vegetation_gain"]:,} m² ({data[timeframe]["vegetation_gain_relative"]:.2f}%)',
             ln=1, w=0)
-        y+=24
+        y += font_size_normal
         pdf.set_xy(x,y)
         pdf.cell(
             txt=f'Vegetation loss: {data[timeframe]["vegetation_loss"]:,} m² ({data[timeframe]["vegetation_loss_relative"]:.2f}%)',
             ln=1, w=0)
-        pdf.image(data[timeframe]["path"], x=28.3464566929, y=230, w=1200-(28.3464566929 * 2), h=1200-28.3464566929)
+        pdf.image(data[timeframe]["path"], x=cm_in_pt, y=y, w=1200-(cm_in_pt * 2), h=1200-cm_in_pt)
     pdf.output(pdf_name)
 
 # Add Earth Engine drawing method to folium.
@@ -514,7 +567,8 @@ for timeframe in timeframes:
         os.remove(html_map)
 
 if new_report:
-    generate_pdf(data[processing_date], PDF_PATH)
+    pdf = FPDF(orientation='L', format=(1430, 1200), unit='pt')
+    generate_pdf(pdf, data[processing_date], PDF_PATH, logos, head_text)
 
 if not local_test_run:
     if new_report:
