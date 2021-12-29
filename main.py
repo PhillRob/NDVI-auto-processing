@@ -63,9 +63,9 @@ end_date = ee_date
 timeframes = {
     'two_weeks': {'start_date': (ee.Date(py_date - timedelta(days=14))), 'end_date': end_date},
     'one_year': {'start_date': ee.Date(py_date - timedelta(days=365)), 'end_date': end_date},
+    'since_2016': {'start_date': ee.Date(py_date - timedelta(days=(365 * 5))), 'end_date': ee.Date(py_date)},
     'nov_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=11, day=1)), 'end_date': ee.Date(py_date.replace(month=11))},
     'july_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=7, day=1)), 'end_date': ee.Date(py_date.replace(month=7))},
-    'since_2016': {'start_date': ee.Date(py_date - timedelta(days=(365*5))), 'end_date': ee.Date(py_date)},
 }
 head_text = {
     'two_weeks': 'One week',
@@ -258,10 +258,9 @@ def pdf_add_image(pdf, image, pos, size):
 def generate_pdf(pdf, data, pdf_name, logos, head_text):
     # equates to one cm
     cm_in_pt = 28.3464566929
-    font_size_small = 12
-    font_size_normal = 24
-    font_size_heading = 26
-    font_size_intro_heading = 30
+    font_size_normal = 12
+    font_size_heading = 14
+    font_size_intro_heading = 18
     logo_size = (int(cm_in_pt * 5), int(cm_in_pt * 2))
     # set starting point
     x = cm_in_pt
@@ -347,7 +346,7 @@ def generate_pdf(pdf, data, pdf_name, logos, head_text):
             ln=1, w=0)
         y += font_size_normal * 2
         pdf.set_xy(x,y)
-        pdf.image(data[timeframe]["path"], x=cm_in_pt, y=y, w=1200-(cm_in_pt + y), h=1200-(cm_in_pt + y))
+        pdf.image(data[timeframe]["path"], x=cm_in_pt, y=y, w=pdf.w-(cm_in_pt * 2), h=pdf.w-(cm_in_pt * 2))
     pdf.output(pdf_name)
 
 # Add Earth Engine drawing method to folium.
@@ -575,7 +574,7 @@ for timeframe in timeframes:
         os.remove(html_map)
 
 if new_report:
-    pdf = FPDF(orientation='L', format=(1430, 1200), unit='pt')
+    pdf = FPDF(orientation='P', format='A4', unit='pt')
     generate_pdf(pdf, data[processing_date], PDF_PATH, logos, head_text)
 
 if not local_test_run:
