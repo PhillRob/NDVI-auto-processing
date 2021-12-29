@@ -62,10 +62,10 @@ end_date = ee_date
 # 2018-03-12 has clouds
 timeframes = {
     'two_weeks': {'start_date': (ee.Date(py_date - timedelta(days=14))), 'end_date': end_date},
-    'one_year': {'start_date': ee.Date(py_date.replace(year=py_date.year - 1)), 'end_date': end_date},
+    'one_year': {'start_date': ee.Date(py_date - timedelta(days=365)), 'end_date': end_date},
     'nov_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=11, day=1)), 'end_date': ee.Date(py_date.replace(month=11))},
     'july_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=7, day=1)), 'end_date': ee.Date(py_date.replace(month=7))},
-    'since_2016': {'start_date': ee.Date(py_date.replace(year=2016)), 'end_date': ee.Date(py_date)},
+    'since_2016': {'start_date': ee.Date(py_date - timedelta(days=(365*5))), 'end_date': ee.Date(py_date)},
 }
 head_text = {
     'two_weeks': 'One week',
@@ -240,7 +240,14 @@ def add_ee_layer(self, ee_object, vis_params, name):
 
     except Exception as e:
         print(f"Could not display {name}. Exception: {e}")
-
+def footer(self):
+    # Go to 1.5 cm from bottom
+    self.set_y(-15)
+    # Select Arial italic 8
+    self.set_font('Arial', 'I', 8)
+    if self.page_no() != 1:
+        pdf.cell(txt=f'BPLA GmbH', ln=0, w=0)
+        pdf.cell(txt=f'{self.page_no() - 1}', ln=0, w=0, align='C')
 def pdf_add_image(pdf, image, pos, size):
     try:
         pdf.image(image, x=pos[0], y=pos[1], w=size[0], h=size[1])
@@ -254,9 +261,8 @@ def generate_pdf(pdf, data, pdf_name, logos, head_text):
     font_size_small = 12
     font_size_normal = 24
     font_size_heading = 26
-    font_size_intro_heading = 28
+    font_size_intro_heading = 30
     logo_size = (int(cm_in_pt * 5), int(cm_in_pt * 2))
-    logo_size_red = (PIL.Image.open(logos[1]).width/10,PIL.Image.open(logos[1]).height/10)
     # set starting point
     x = cm_in_pt
     y = cm_in_pt
@@ -264,12 +270,9 @@ def generate_pdf(pdf, data, pdf_name, logos, head_text):
     pdf.add_page()
     pdf.set_font('Arial', 'B', size=font_size_intro_heading)
     pdf_add_image(pdf, logos[0], (x, y), logo_size)
-    pdf_add_image(pdf, logos[1], (pdf.w-(logo_size_red[0] + x), y), logo_size_red)
     y += logo_size[1] + font_size_intro_heading * 2
     pdf.set_xy(x, y)
-    pdf.cell(
-        txt=f'{geo_data["name"]}',
-        ln=1, w=0)
+    pdf.cell(txt=f'{geo_data["name"]}', ln=1, w=0)
     y += font_size_intro_heading * 2
     pdf.set_xy(x, y)
     pdf.cell(
@@ -278,15 +281,20 @@ def generate_pdf(pdf, data, pdf_name, logos, head_text):
     y += font_size_intro_heading * 2
     pdf.set_xy(x, y)
     pdf.set_font('Arial', size=font_size_normal)
-    pdf.cell(
-        txt=f'{processing_date}',
-        ln=1, w=0)
+    pdf.cell(txt=f'{processing_date}',ln=1, w=0)
     y += font_size_normal * 2
     pdf.set_xy(x, y)
-    pdf.multi_cell(
-        txt=f'This report summarises the vegetation change for 5 time periods in the {geo_data["name"]}. The results are based on the analysis of the Sentinel 2 Satellite data. The report is updated if new data becomes available (approximately every 7-14 days).',
-        w=0)
-    y = pdf.h / 3
+    pdf.cell(txt=f'v0.1',ln=1, w=0)
+    y += font_size_normal * 2
+    pdf.set_xy(x, y)
+    pdf.cell(txt=f'This report summarises the vegetation change for 5 time periods in the {geo_data["name"]}.',ln=1, w=0)
+    y += font_size_normal * 2
+    pdf.set_xy(x, y)
+    pdf.cell(txt=f'The results are based on the analysis of the Sentinel 2 Satellite data.',ln=1, w=0)
+    y += font_size_normal * 2
+    pdf.set_xy(x, y)
+    pdf.cell(txt=f'The report is updated if new data becomes available (approximately every 7-14 days).',ln=1, w=0)
+    y = pdf.h / 2
     pdf.set_xy(x, y)
     for timeframe in data.keys():
         pdf.cell(
@@ -295,54 +303,51 @@ def generate_pdf(pdf, data, pdf_name, logos, head_text):
         y += font_size_normal * 2
         pdf.set_xy(x, y)
     y = pdf.h - 70
-    pdf.set_xy(x,y)
-    pdf.set_font('Arial', 'B', size=font_size_small)
-    pdf.cell(
-        txt=f'BPLA GmbH',
-        ln=1, w=0)
 
+    FPDF.footer = footer
     for timeframe in data.keys():
         pdf.add_page()
         pdf.set_font('Arial', 'B',  size=font_size_heading)
         y = cm_in_pt
         pdf.set_xy(x, y)
         pdf_add_image(pdf, logos[0], (x, y), logo_size)
-        pdf_add_image(pdf, logos[1], (pdf.w-(logo_size_red[0] + x), y), logo_size_red)
-        y += logo_size[1]
+        y += logo_size[1] + font_size_heading * 2
         pdf.set_xy(x, y)
         pdf.cell(
             txt=f'{data[timeframe]["project_name"]}: {head_text[timeframe]} vegetation evaluation ({data[timeframe]["start_date_satellite"]} to {data[timeframe]["end_date_satellite"]})',
             ln=1, w=0)
-        y += font_size_heading
+        y += font_size_heading * 2
         pdf.set_xy(x, y)
         pdf.set_font('Arial', size=font_size_normal)
         pdf.cell(txt=f'Project area: {data[timeframe]["project_area"]:.2f} km²', ln=1, w=0)
-        y += font_size_normal
+        y += font_size_normal * 2
         pdf.set_xy(x, y)
         pdf.cell(
             txt=f'Vegetation cover ({data[timeframe]["start_date"]}): {data[timeframe]["vegetation_start"]:,} m² ({data[timeframe]["vegetation_share_start"]:.2f}%)',
             ln=1, w=0)
-        y += font_size_normal
+        y += font_size_normal * 2
         pdf.set_xy(x, y)
         pdf.cell(
             txt=f'Vegetation cover ({data[timeframe]["end_date"]}): {data[timeframe]["vegetation_end"]:,} m² ({data[timeframe]["vegetation_share_end"]:.2f}%)',
             ln=1, w=0)
-        y += font_size_normal
+        y += font_size_normal * 2
         pdf.set_xy(x, y)
         pdf.cell(
             txt=f'Net vegetation change: {data[timeframe]["area_change"]:,} m² ({data[timeframe]["vegetation_share_change"]:.2f}%)',
             ln=1, w=0)
-        y += font_size_normal
+        y += font_size_normal * 2
         pdf.set_xy(x, y)
         pdf.cell(
-            txt=f'Vegetation gain: {data[timeframe]["vegetation_gain"]:,} m² ({data[timeframe]["vegetation_gain_relative"]:.2f}%)',
+            txt=f'Vegetation gain (green): {data[timeframe]["vegetation_gain"]:,} m² ({data[timeframe]["vegetation_gain_relative"]:.2f}%)',
             ln=1, w=0)
-        y += font_size_normal
+        y += font_size_normal * 2
         pdf.set_xy(x,y)
         pdf.cell(
-            txt=f'Vegetation loss: {data[timeframe]["vegetation_loss"]:,} m² ({data[timeframe]["vegetation_loss_relative"]:.2f}%)',
+            txt=f'Vegetation loss (red): {data[timeframe]["vegetation_loss"]:,} m² ({data[timeframe]["vegetation_loss_relative"]:.2f}%)',
             ln=1, w=0)
-        pdf.image(data[timeframe]["path"], x=cm_in_pt, y=y, w=1200-(cm_in_pt * 2), h=1200-cm_in_pt)
+        y += font_size_normal * 2
+        pdf.set_xy(x,y)
+        pdf.image(data[timeframe]["path"], x=cm_in_pt, y=y, w=1200-(cm_in_pt * 2), h=pdf.h-(cm_in_pt + y))
     pdf.output(pdf_name)
 
 # Add Earth Engine drawing method to folium.
@@ -439,19 +444,22 @@ for timeframe in timeframes:
     if timeframe_collection.size().getInfo() != 0:
         latest_image = ee.Image(timeframe_collection.toList(timeframe_collection.size()).get(timeframe_collection.size().subtract(1)))
         first_image = ee.Image(timeframe_collection.toList(timeframe_collection.size()).get(0))
+
         latest_image_date = latest_image.date().format("dd.MM.YYYY").getInfo()
         first_image_date = first_image.date().format("dd.MM.YYYY").getInfo()
     else:
         latest_image = ee.Image(collection.toList(collection.size()).get(collection.size().subtract(1)))
-        first_image = ee.Image(collection.toList(collection.size()).get(collection.size().subtract(2)))
+        first_image = ee.Image(collection.toList(collection.size()).get(collection.size().subtract(3)))
+
+        latest_image_date = latest_image.date().format("dd.MM.YYYY").getInfo()
+        first_image_date = first_image.date().format("dd.MM.YYYY").getInfo()
 
         ndvi_img_start = ee.Image(ndvi_collection.toList(ndvi_collection.size()).get(
             ndvi_timeframe_collection.size().subtract(2)))
         ndvi_img_end = ee.Image(ndvi_collection.toList(ndvi_collection.size()).get(
             ndvi_timeframe_collection.size().subtract(1)))
 
-        latest_image_date = timeframes[timeframe]['end_date'].format("dd.MM.YYYY").getInfo()
-        first_image_date = timeframes[timeframe]['start_date'].format("dd.MM.YYYY").getInfo()
+
 
 
     project_area = get_project_area(first_image).getInfo()['properties']['project_area_size']
