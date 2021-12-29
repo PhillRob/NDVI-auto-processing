@@ -74,7 +74,7 @@ head_text = {
     'july_2016': 'Five year summer',
     'since_2016': 'Five year'
 }
-logos = ['static/bpla_logo_blau.png', 'static/bpla_logo_rot.png']
+logos = ['static/bpla_logo_blau.png']
 
 # cloud masking function
 def maskS2clouds(image):
@@ -347,7 +347,7 @@ def generate_pdf(pdf, data, pdf_name, logos, head_text):
             ln=1, w=0)
         y += font_size_normal * 2
         pdf.set_xy(x,y)
-        pdf.image(data[timeframe]["path"], x=cm_in_pt, y=y, w=1200-(cm_in_pt * 2), h=pdf.h-(cm_in_pt + y))
+        pdf.image(data[timeframe]["path"], x=cm_in_pt, y=y, w=1200-(cm_in_pt + y), h=1200-(cm_in_pt + y))
     pdf.output(pdf_name)
 
 # Add Earth Engine drawing method to folium.
