@@ -68,12 +68,57 @@ timeframes = {
     'july_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=7, day=1)), 'end_date': ee.Date(py_date.replace(month=7))},
 }
 head_text = {
-    'two_weeks': 'One week',
-    'one_year': 'One year',
-    'nov_2016': 'Five year winter',
-    'july_2016': 'Five year summer',
-    'since_2016': 'Five year'
+    'two_weeks': 'Short-term: One-week',
+    'one_year': 'Medium-term: One-year',
+    'since_2016': 'Long-term: Five-year',
+    'nov_2016': 'Winter long-term: Five-year winter',
+    'july_2016': 'Summer long-term: Five-year summer',
 }
+body_text = {
+    'two_weeks': [
+        '    - Compares current and previous data ',
+        '    - Indicates immediate maintenance and construction challenges, and results',
+        '    - Immediate irrigation and maintenance control, and private greening efforts',
+        '    - Focus on managed vegetation (parks, roads,...)'
+    ],
+    'one_year': [
+        '    - Compares current and last year\'s data',
+        '    - Indicates medium-term trends for the same month (season)',
+        '    - Shows trends in maintenance performance (irrigation, pruning, etc), and construction',
+        '    - Indicative of environmental changes (weather, ground water, ...)'
+    ],
+    'since_2016': [
+        '    - Compares current data with the first available data of the same month (season)',
+        '    - Long-term trends in construction, maintenance, greening and environmental changes',
+    ],
+    'nov_2016': [
+        '    - Compares current November data with first available November ',
+        '    - Best-case setting: natural vegetation flourishes in November (lower temperature, ',
+        '      increased rainfall probability) ',
+        '    - Shows long term trends natural vegetation relating to environmental conditions and ',
+        '      construction and long-term maintenance efforts ',
+    ],
+    'july_2016': [
+        '    - Compares last July data with first available July',
+        '    - Worst-case setting: water and heat stress peaks in July',
+        '    - Shows long-term trends in managed vegetation ',
+    ],
+}
+body_text_page_two = [
+    'We change detection and time frames to be explained.',
+    'What does an comparision',
+    '',
+    '    1. Maintenance and management:',
+    '        a.	Irrigation system and water quality',
+    '        b.	Vegetation management (pruning, planting)',
+    '        c.	Public usage pressure and impact on vegetation ',
+    '    2.	Planning',
+    '        a.	Planting opportunity',
+    '        b.	Impact of construction and development projects',
+    '        c.	Changing environmental conditions (water availability)',
+
+]
+
 logos = ['static/bpla_logo_blau.png']
 
 # cloud masking function
@@ -255,13 +300,14 @@ def pdf_add_image(pdf, image, pos, size):
         print(f'Could not add image {image}. Error: {e}')
 
 
-def generate_pdf(pdf, data, pdf_name, logos, head_text):
+def generate_pdf(pdf, data, pdf_name, logos, head_text, body_text, body_text_page_two):
     # equates to one cm
     cm_in_pt = 28.3464566929
-    font_size_normal = 12
+    font_size_normal = 11
     font_size_heading = 14
     font_size_intro_heading = 18
-    logo_size = (int(cm_in_pt * 5), int(cm_in_pt * 2))
+    line_space = font_size_normal/2 - 1
+    logo_size = (int(cm_in_pt * 5.76), int(cm_in_pt * 2.4))
     # set starting point
     x = cm_in_pt
     y = cm_in_pt
@@ -283,25 +329,56 @@ def generate_pdf(pdf, data, pdf_name, logos, head_text):
     pdf.cell(txt=f'{processing_date}',ln=1, w=0)
     y += font_size_normal * 2
     pdf.set_xy(x, y)
-    pdf.cell(txt=f'v0.1',ln=1, w=0)
+    pdf.cell(txt=f'v0.1', ln=1, w=0)
     y += font_size_normal * 2
     pdf.set_xy(x, y)
-    pdf.cell(txt=f'This report summarises the vegetation change for 5 time periods in the {geo_data["name"]}.',ln=1, w=0)
+    pdf.cell(txt=f'To whom it may concern,',ln=1, w=0)
     y += font_size_normal * 2
     pdf.set_xy(x, y)
-    pdf.cell(txt=f'The results are based on the analysis of the Sentinel 2 Satellite data.',ln=1, w=0)
+    pdf.cell(txt=f'Here we report the changes of vegetation cover in the Diplomatic', ln=1, w=0)
     y += font_size_normal * 2
     pdf.set_xy(x, y)
-    pdf.cell(txt=f'The report is updated if new data becomes available (approximately every 7-14 days).',ln=1, w=0)
+    pdf.cell(txt=f'Quarter. This report localises vegetation changes for five time periods by comparing vegetation',ln=1, w=0)
+    y += font_size_normal * 2
+    pdf.set_xy(x, y)
+    pdf.cell(txt=f'maps of two dates and is published every 7 to 10 days based on new available data. The maps ', ln=1, w=0)
+    y += font_size_normal * 2
+    pdf.set_xy(x, y)
+    pdf.cell(txt=f'show:',ln=1, w=0)
+    y += font_size_normal * 2
+    pdf.set_xy(x, y)
+    first_point = f'    -Vegetation gain is green and vegetation loss is shown in read.'
+    pdf.cell(txt=first_point,ln=1, w=0)
+    y += font_size_normal * 2
+    pdf.set_xy(x, y)
+    second_point = f'    -Transparent areas have not changed between the two assessment dates.'
+    pdf.cell(txt=second_point,ln=1, w=0)
     y = pdf.h / 2
     pdf.set_xy(x, y)
     for timeframe in data.keys():
         pdf.cell(
-            txt=f'-\t{head_text[timeframe]} vegetation evaluation ({data[timeframe]["start_date_satellite"]} to {data[timeframe]["end_date_satellite"]})',
+            txt=f'{head_text[timeframe]} vegetation evaluation ({data[timeframe]["start_date_satellite"]} to {data[timeframe]["end_date_satellite"]})',
+            ln=1, w=0)
+        y += font_size_normal + line_space
+        pdf.set_xy(x, y)
+        for text in body_text[timeframe]:
+            pdf.cell(
+                txt=f'{text}',
+                ln=1, w=0)
+            y += font_size_normal + line_space
+            pdf.set_xy(x, y)
+    pdf.add_page()
+    y = cm_in_pt
+    pdf.set_xy(x, y)
+    pdf_add_image(pdf, logos[0], (x, y), logo_size)
+    y += logo_size[1] + font_size_intro_heading * 2
+    pdf.set_xy(x, y)
+    for text in body_text_page_two:
+        pdf.cell(
+            txt=f'{text}',
             ln=1, w=0)
         y += font_size_normal * 2
         pdf.set_xy(x, y)
-    y = pdf.h - 70
 
     FPDF.footer = footer
     for timeframe in data.keys():
@@ -319,32 +396,32 @@ def generate_pdf(pdf, data, pdf_name, logos, head_text):
         pdf.set_xy(x, y)
         pdf.set_font('Arial', size=font_size_normal)
         pdf.cell(txt=f'Project area: {data[timeframe]["project_area"]:.2f} km²', ln=1, w=0)
-        y += font_size_normal * 2
+        y += font_size_normal + line_space
         pdf.set_xy(x, y)
         pdf.cell(
             txt=f'Vegetation cover ({data[timeframe]["start_date"]}): {data[timeframe]["vegetation_start"]:,} m² ({data[timeframe]["vegetation_share_start"]:.2f}%)',
             ln=1, w=0)
-        y += font_size_normal * 2
+        y += font_size_normal + line_space
         pdf.set_xy(x, y)
         pdf.cell(
             txt=f'Vegetation cover ({data[timeframe]["end_date"]}): {data[timeframe]["vegetation_end"]:,} m² ({data[timeframe]["vegetation_share_end"]:.2f}%)',
             ln=1, w=0)
-        y += font_size_normal * 2
+        y += font_size_normal + line_space
         pdf.set_xy(x, y)
         pdf.cell(
             txt=f'Net vegetation change: {data[timeframe]["area_change"]:,} m² ({data[timeframe]["vegetation_share_change"]:.2f}%)',
             ln=1, w=0)
-        y += font_size_normal * 2
+        y += font_size_normal + line_space
         pdf.set_xy(x, y)
         pdf.cell(
             txt=f'Vegetation gain (green): {data[timeframe]["vegetation_gain"]:,} m² ({data[timeframe]["vegetation_gain_relative"]:.2f}%)',
             ln=1, w=0)
-        y += font_size_normal * 2
+        y += font_size_normal + line_space
         pdf.set_xy(x,y)
         pdf.cell(
             txt=f'Vegetation loss (red): {data[timeframe]["vegetation_loss"]:,} m² ({data[timeframe]["vegetation_loss_relative"]:.2f}%)',
             ln=1, w=0)
-        y += font_size_normal * 2
+        y += font_size_normal + line_space
         pdf.set_xy(x,y)
         pdf.image(data[timeframe]["path"], x=cm_in_pt, y=y, w=pdf.w-(cm_in_pt * 2), h=pdf.w-(cm_in_pt * 2))
     pdf.output(pdf_name)
@@ -575,7 +652,7 @@ for timeframe in timeframes:
 
 if new_report:
     pdf = FPDF(orientation='P', format='A4', unit='pt')
-    generate_pdf(pdf, data[processing_date], PDF_PATH, logos, head_text)
+    generate_pdf(pdf, data[processing_date], PDF_PATH, logos, head_text, body_text, body_text_page_two)
 
 if not local_test_run:
     if new_report:
