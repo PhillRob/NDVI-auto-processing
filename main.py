@@ -389,10 +389,10 @@ def generate_pdf(pdf, data, pdf_name, logos, head_text, body_text, body_text_pag
         pdf_add_image(pdf, logos[0], (x, y), logo_size)
         y += logo_size[1] + font_size_heading * 2
         pdf.set_xy(x, y)
-        pdf.cell(
-            txt=f'{data[timeframe]["project_name"]}: {head_text[timeframe]} vegetation evaluation ({data[timeframe]["start_date_satellite"]} to {data[timeframe]["end_date_satellite"]})',
+        pdf.multi_cell(
+            txt=f'{data[timeframe]["project_name"]} {head_text[timeframe]} vegetation evaluation ({data[timeframe]["start_date_satellite"]} to {data[timeframe]["end_date_satellite"]})',
             ln=1, w=0)
-        y += font_size_heading * 2
+        y += font_size_heading * 3
         pdf.set_xy(x, y)
         pdf.set_font('Arial', size=font_size_normal)
         pdf.cell(txt=f'Project area: {data[timeframe]["project_area"]:.2f} km²', ln=1, w=0)
