@@ -104,20 +104,6 @@ body_text = {
         '    - Shows long-term trends in managed vegetation ',
     ],
 }
-body_text_page_two = [
-    'We change detection and time frames to be explained.',
-    'What does an comparision',
-    '',
-    '    1. Maintenance and management:',
-    '        a.	Irrigation system and water quality',
-    '        b.	Vegetation management (pruning, planting)',
-    '        c.	Public usage pressure and impact on vegetation ',
-    '    2.	Planning',
-    '        a.	Planting opportunity',
-    '        b.	Impact of construction and development projects',
-    '        c.	Changing environmental conditions (water availability)',
-
-]
 
 logos = ['static/bpla_logo_blau.png']
 
@@ -300,7 +286,7 @@ def pdf_add_image(pdf, image, pos, size):
         print(f'Could not add image {image}. Error: {e}')
 
 
-def generate_pdf(pdf, data, pdf_name, logos, head_text, body_text, body_text_page_two):
+def generate_pdf(pdf, data, pdf_name, logos, head_text, body_text):
     # equates to one cm
     cm_in_pt = 28.3464566929
     font_size_normal = 11
@@ -373,12 +359,6 @@ def generate_pdf(pdf, data, pdf_name, logos, head_text, body_text, body_text_pag
     pdf_add_image(pdf, logos[0], (x, y), logo_size)
     y += logo_size[1] + font_size_intro_heading * 2
     pdf.set_xy(x, y)
-    for text in body_text_page_two:
-        pdf.cell(
-            txt=f'{text}',
-            ln=1, w=0)
-        y += font_size_normal * 2
-        pdf.set_xy(x, y)
 
     FPDF.footer = footer
     for timeframe in data.keys():
@@ -652,7 +632,7 @@ for timeframe in timeframes:
 
 if new_report:
     pdf = FPDF(orientation='P', format='A4', unit='pt')
-    generate_pdf(pdf, data[processing_date], PDF_PATH, logos, head_text, body_text, body_text_page_two)
+    generate_pdf(pdf, data[processing_date], PDF_PATH, logos, head_text, body_text)
 
 if not local_test_run:
     if new_report:

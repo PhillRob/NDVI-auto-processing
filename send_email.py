@@ -2,15 +2,18 @@
 # -*- coding: UTF-8 -*-
 
 # # # imports
+import bs4
 import gc
 import logging
 from datetime import datetime, timedelta
+from pathlib import Path
 import smtplib
 import json
 from email.mime.application import MIMEApplication
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from xhtml2pdf import pisa
 
 # set up logging TODO: do this for main script as well
 #logging.basicConfig(filename='ndvi-report-mailer.log', level=logging.DEBUG)
@@ -40,7 +43,7 @@ def sendEmail(test, project_data, credentials_path, path_to_pdf):
     if test:
         addr = ['gilbert.john@outlook.de']
     else:
-        addr = ['gilbert.john@outlook.de', 'robeck@bp-la.com', 'philipp.robeck@gmail.com', 'phill@gmx.li']
+        addr = ['gilbert.john@outlook.de', 'robeck@bp-la.com', 'alkhawand@bp-la.com']
 
     # mail vars
     msgRoot = MIMEMultipart('related')
