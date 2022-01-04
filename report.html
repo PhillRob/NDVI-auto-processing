@@ -1,0 +1,34 @@
+<html>
+    <head>
+        <style>
+            @page {
+                size: a4 portrait;
+            @frame header_frame {           /* Static Frame */
+                -pdf-frame-content: header_content;
+                left: 1000pt; width: 163pt; top: 1cm; bottom: 1cm;
+                }
+            @frame content_frame {          /* Content Frame */
+                left: 0pt; width: 512pt; top: 90pt; height: 632pt;
+                }
+            @frame footer_frame {           /* Another static Frame */
+                -pdf-frame-content: footer_content;
+                left: 50pt; width: 512pt; top: 772pt; height: 20pt;
+                }
+            }
+            @media print {
+                .new-page {
+                    page-break-after: always;
+                }
+            }
+            h1 {
+
+            }
+        </style>
+    </head>
+    <body>
+     <!-- Content for Static Frame 'footer_frame' -->
+        <div id="footer_content">page <pdf:pagenumber>
+            of <pdf:pagecount>
+        </div>
+    </body>
+</html>

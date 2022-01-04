@@ -2,20 +2,21 @@
 # -*- coding: UTF-8 -*-
 # packages package
 import logging
-
+import bs4
 import datetime
 import ee
 import folium
 import json
 import logging
 import os
-import PIL
 from fpdf import FPDF
+from pathlib import Path
 import selenium.webdriver
 from selenium.webdriver.firefox.options import Options
 import time
 from send_email import *
 import sys
+from xhtml2pdf import pisa
 
 
 local_test_run = False
@@ -51,6 +52,15 @@ with open(GEOJSON_PATH) as f:
     geo_data = json.load(f)
 geometry = geo_data['features'][0]['geometry']
 
+# open html for pdf generation
+with open('report.html', 'r') as html_text:
+    source_html = html_text.read()
+
+logo = Path('static/bpla_logo_blau.png').resolve()
+
+soup = bs4.BeautifulSoup(source_html, features="html5lib")
+html_logo = soup.new_tag('img', src=logo, id="header_content")
+soup.body.append(html_logo)
 
 # set dates for analysis
 py_date = datetime.utcnow()
@@ -76,36 +86,23 @@ head_text = {
 }
 body_text = {
     'two_weeks': [
-        '    - Compares current and previous data ',
-        '    - Indicates immediate maintenance and construction challenges, and results',
-        '    - Immediate irrigation and maintenance control, and private greening efforts',
-        '    - Focus on managed vegetation (parks, roads,...)'
+        'Direct irrigation, pruning and maintenance control for last two weeks',
+        'Focus on areas under maintenance (parks, roads)'
     ],
     'one_year': [
-        '    - Compares current and last year\'s data',
-        '    - Indicates medium-term trends for the same month (season)',
-        '    - Shows trends in maintenance performance (irrigation, pruning, etc), and construction',
-        '    - Indicative of environmental changes (weather, ground water, ...)'
+        ' Trends in maintenance performance and construction for one year',
+        ' Indicative of environmental changes (weather, groundwater)'
     ],
     'since_2016': [
-        '    - Compares current data with the first available data of the same month (season)',
-        '    - Long-term trends in construction, maintenance, greening and environmental changes',
+        'Long-term trends in maintenance, construction, and environmental changes'
     ],
     'nov_2016': [
-        '    - Compares current November data with first available November ',
-        '    - Best-case setting: natural vegetation flourishes in November (lower temperature, ',
-        '      increased rainfall probability) ',
-        '    - Shows long term trends natural vegetation relating to environmental conditions and ',
-        '      construction and long-term maintenance efforts ',
+        ' Long-term trends in natural and managed vegetation in favourable weather'
     ],
     'july_2016': [
-        '    - Compares last July data with first available July',
-        '    - Worst-case setting: water and heat stress peaks in July',
-        '    - Shows long-term trends in managed vegetation ',
-    ],
+        'Long-term trends in natural and managed vegetation in heat and water stress'
+    ]
 }
-
-logos = ['static/bpla_logo_blau.png']
 
 # cloud masking function
 def maskS2clouds(image):
@@ -271,140 +268,90 @@ def add_ee_layer(self, ee_object, vis_params, name):
 
     except Exception as e:
         print(f"Could not display {name}. Exception: {e}")
-def footer(self):
-    # Go to 1.5 cm from bottom
-    self.set_y(-15)
-    # Select Arial italic 8
-    self.set_font('Arial', 'I', 8)
-    if self.page_no() != 1:
-        pdf.cell(txt=f'BPLA GmbH', ln=0, w=0)
-        pdf.cell(txt=f'{self.page_no() - 1}', ln=0, w=0, align='C')
-def pdf_add_image(pdf, image, pos, size):
-    try:
-        pdf.image(image, x=pos[0], y=pos[1], w=size[0], h=size[1])
-    except Exception as e:
-        print(f'Could not add image {image}. Error: {e}')
 
-
-def generate_pdf(pdf, data, pdf_name, logos, head_text, body_text):
-    # equates to one cm
-    cm_in_pt = 28.3464566929
-    font_size_normal = 11
-    font_size_heading = 14
-    font_size_intro_heading = 18
-    line_space = font_size_normal/2 - 1
-    logo_size = (int(cm_in_pt * 5.76), int(cm_in_pt * 2.4))
-    # set starting point
-    x = cm_in_pt
-    y = cm_in_pt
-    # intro page
-    pdf.add_page()
-    pdf.set_font('Arial', 'B', size=font_size_intro_heading)
-    pdf_add_image(pdf, logos[0], (x, y), logo_size)
-    y += logo_size[1] + font_size_intro_heading * 2
-    pdf.set_xy(x, y)
-    pdf.cell(txt=f'{geo_data["name"]}', ln=1, w=0)
-    y += font_size_intro_heading * 2
-    pdf.set_xy(x, y)
-    pdf.cell(
-        txt=f'Vegetation Cover Change Report',
-        ln=1, w=0)
-    y += font_size_intro_heading * 2
-    pdf.set_xy(x, y)
-    pdf.set_font('Arial', size=font_size_normal)
-    pdf.cell(txt=f'{processing_date}',ln=1, w=0)
-    y += font_size_normal * 2
-    pdf.set_xy(x, y)
-    pdf.cell(txt=f'v0.1', ln=1, w=0)
-    y += font_size_normal * 2
-    pdf.set_xy(x, y)
-    pdf.cell(txt=f'To whom it may concern,',ln=1, w=0)
-    y += font_size_normal * 2
-    pdf.set_xy(x, y)
-    pdf.cell(txt=f'Here we report the changes of vegetation cover in the Diplomatic', ln=1, w=0)
-    y += font_size_normal * 2
-    pdf.set_xy(x, y)
-    pdf.cell(txt=f'Quarter. This report localises vegetation changes for five time periods by comparing vegetation',ln=1, w=0)
-    y += font_size_normal * 2
-    pdf.set_xy(x, y)
-    pdf.cell(txt=f'maps of two dates and is published every 7 to 10 days based on new available data. The maps ', ln=1, w=0)
-    y += font_size_normal * 2
-    pdf.set_xy(x, y)
-    pdf.cell(txt=f'show:',ln=1, w=0)
-    y += font_size_normal * 2
-    pdf.set_xy(x, y)
-    first_point = f'    -Vegetation gain is green and vegetation loss is shown in read.'
-    pdf.cell(txt=first_point,ln=1, w=0)
-    y += font_size_normal * 2
-    pdf.set_xy(x, y)
-    second_point = f'    -Transparent areas have not changed between the two assessment dates.'
-    pdf.cell(txt=second_point,ln=1, w=0)
-    y = pdf.h / 2
-    pdf.set_xy(x, y)
+def add_data_to_html(soup, data, head_text, body_text, processing_date):
+    project_name = data[list(data.keys())[0]]['project_name']
+    headline = soup.new_tag('h1')
+    headline.string = project_name
+    soup.body.append(headline)
+    headline_two = soup.new_tag('h1')
+    headline_two.string = 'Vegetation Cover Change Report'
+    soup.body.append(headline_two)
+    date = soup.new_tag('p')
+    date.string = processing_date
+    soup.body.append(date)
+    version = soup.new_tag('p')
+    version.string = 'v0.1'
+    soup.body.append(version)
+    intro_text = soup.new_tag('p')
+    intro_text.string = 'This report localises vegetation changes for five time periods every 7 to 10 days based on \
+    newly available data. The maps show vegetation gain in green, vegetation loss in red.'
+    soup.body.append(intro_text)
     for timeframe in data.keys():
-        pdf.cell(
-            txt=f'{head_text[timeframe]} vegetation evaluation ({data[timeframe]["start_date_satellite"]} to {data[timeframe]["end_date_satellite"]})',
-            ln=1, w=0)
-        y += font_size_normal + line_space
-        pdf.set_xy(x, y)
-        for text in body_text[timeframe]:
-            pdf.cell(
-                txt=f'{text}',
-                ln=1, w=0)
-            y += font_size_normal + line_space
-            pdf.set_xy(x, y)
-    pdf.add_page()
-    y = cm_in_pt
-    pdf.set_xy(x, y)
-    pdf_add_image(pdf, logos[0], (x, y), logo_size)
-    y += logo_size[1] + font_size_intro_heading * 2
-    pdf.set_xy(x, y)
+        bulletpoint_headline = soup.new_tag('h1')
+        bulletpoint_headline.string = f'{head_text[timeframe]} vegetation evaluation \
+        ({data[timeframe]["start_date_satellite"]} to {data[timeframe]["end_date_satellite"]})'
+        soup.body.append(bulletpoint_headline)
+        ul = soup.new_tag('ul')
+        for bulletpoint in body_text[timeframe]:
+            li = soup.new_tag('li')
+            li.string = bulletpoint
+            ul.append(li)
+        soup.body.append(ul)
 
-    FPDF.footer = footer
+    # necessary for page break
+    new_page = soup.new_tag('p', **{'class': 'new-page'})
+    soup.body.append(new_page)
     for timeframe in data.keys():
-        pdf.add_page()
-        pdf.set_font('Arial', 'B',  size=font_size_heading)
-        y = cm_in_pt
-        pdf.set_xy(x, y)
-        pdf_add_image(pdf, logos[0], (x, y), logo_size)
-        y += logo_size[1] + font_size_heading * 2
-        pdf.set_xy(x, y)
-        pdf.multi_cell(
-            txt=f'{data[timeframe]["project_name"]} {head_text[timeframe]} vegetation evaluation ({data[timeframe]["start_date_satellite"]} to {data[timeframe]["end_date_satellite"]})',
-            w=0, h=font_size_heading+line_space)
-        y += font_size_heading * 3
-        pdf.set_xy(x, y)
-        pdf.set_font('Arial', size=font_size_normal)
-        pdf.cell(txt=f'Project area: {data[timeframe]["project_area"]:.2f} km²', ln=1, w=0)
-        y += font_size_normal + line_space
-        pdf.set_xy(x, y)
-        pdf.cell(
-            txt=f'Vegetation cover ({data[timeframe]["start_date"]}): {data[timeframe]["vegetation_start"]:,} m² ({data[timeframe]["vegetation_share_start"]:.2f}%)',
-            ln=1, w=0)
-        y += font_size_normal + line_space
-        pdf.set_xy(x, y)
-        pdf.cell(
-            txt=f'Vegetation cover ({data[timeframe]["end_date"]}): {data[timeframe]["vegetation_end"]:,} m² ({data[timeframe]["vegetation_share_end"]:.2f}%)',
-            ln=1, w=0)
-        y += font_size_normal + line_space
-        pdf.set_xy(x, y)
-        pdf.cell(
-            txt=f'Net vegetation change: {data[timeframe]["area_change"]:,} m² ({data[timeframe]["vegetation_share_change"]:.2f}%)',
-            ln=1, w=0)
-        y += font_size_normal + line_space
-        pdf.set_xy(x, y)
-        pdf.cell(
-            txt=f'Vegetation gain (green): {data[timeframe]["vegetation_gain"]:,} m² ({data[timeframe]["vegetation_gain_relative"]:.2f}%)',
-            ln=1, w=0)
-        y += font_size_normal + line_space
-        pdf.set_xy(x,y)
-        pdf.cell(
-            txt=f'Vegetation loss (red): {data[timeframe]["vegetation_loss"]:,} m² ({data[timeframe]["vegetation_loss_relative"]:.2f}%)',
-            ln=1, w=0)
-        y += font_size_normal + line_space
-        pdf.set_xy(x,y)
-        pdf.image(data[timeframe]["path"], x=cm_in_pt, y=y, w=pdf.w-(cm_in_pt * 2), h=pdf.w-(cm_in_pt * 2))
-    pdf.output(pdf_name)
+        image_headline = soup.new_tag('h2')
+        image_headline.string = f'{project_name} {head_text[timeframe]} vegetation evaluation \
+        ({data[timeframe]["start_date_satellite"]} to {data[timeframe]["end_date_satellite"]})'
+        soup.body.append(image_headline)
+        area_paragraph = soup.new_tag('p')
+        area_paragraph.string = f'Project area: {data[timeframe]["project_area"]} km²'
+        soup.body.append(area_paragraph)
+        cover_start = soup.new_tag('p')
+        cover_start.string = f'Vegetation cover ({data[timeframe]["start_date_satellite"]}): \
+        {data[timeframe]["vegetation_start"]} m² ({data[timeframe]["vegetation_share_start"]} %)'
+        soup.body.append(cover_start)
+        cover_end = soup.new_tag('p')
+        cover_end.string = f'Vegetation cover ({data[timeframe]["end_date_satellite"]}): \
+        {data[timeframe]["vegetation_end"]} m² ({data[timeframe]["vegetation_share_end"]} %)'
+        soup.body.append(cover_end)
+        net_veg_change = soup.new_tag('p')
+        net_veg_change.string = f'Net vegetation change: \
+        {data[timeframe]["vegetation_start"] - data[timeframe]["vegetation_end"]} m² \
+        ({data[timeframe]["vegetation_share_start"] - data[timeframe]["vegetation_share_end"]} %)'
+        soup.body.append(net_veg_change)
+        veg_gain = soup.new_tag('p')
+        veg_gain.string = f'Vegetation gain (green): \
+        {data[timeframe]["vegetation_gain"]} m² ({data[timeframe]["vegetation_gain_relative"]} %)'
+        soup.body.append(veg_gain)
+        veg_loss = soup.new_tag('p')
+        veg_loss.string = f'Vegetation loss (red): \
+        {data[timeframe]["vegetation_loss"]} m² ({data[timeframe]["vegetation_loss_relative"]} %)'
+        soup.body.append(veg_loss)
+
+        img = Path(data[timeframe]['path']).resolve()
+        html_img = soup.new_tag('img', src=img)
+        soup.body.append(html_img)
+    return soup
+
+def convert_html_to_pdf(source_html, output_filename, save_path):
+    # open output file for writing (truncated binary)
+    result_file = open(save_path + output_filename, "w+b")
+
+    # convert HTML to PDF
+    pisa_status = pisa.CreatePDF(
+        source_html,  # the HTML to convert
+        dest=result_file)  # file handle to receive result
+
+    # close output file
+    result_file.close()  # close output file
+
+    # return False on success and True on errors
+    return pisa_status.err
+
 
 # Add Earth Engine drawing method to folium.
 folium.Map.add_ee_layer = add_ee_layer
@@ -631,8 +578,12 @@ for timeframe in timeframes:
         os.remove(html_map)
 
 if new_report:
-    pdf = FPDF(orientation='P', format='A4', unit='pt')
-    generate_pdf(pdf, data[processing_date], PDF_PATH, logos, head_text, body_text)
+    soup = add_data_to_html(soup, data[processing_date], head_text, body_text, processing_date)
+    pisa.showLogging()
+    if local_test_run:
+        convert_html_to_pdf(soup.prettify(), f'vegetation_report_{processing_date}.pdf', '../output/')
+    else:
+        convert_html_to_pdf(soup.prettify(), f'vegetation_report_{processing_date}.pdf', 'output/')
 
 if not local_test_run:
     if new_report:
@@ -643,15 +594,7 @@ if not local_test_run:
 
 if email_test_run:
     sendEmail(sendtest, open_project_date(JSON_FILE_NAME)[processing_date], CREDENTIALS_PATH, PDF_PATH)
-# loop to find the areas that have different cloud cover
-# for i in cloud_collection.getInfo()['features']:
-#     if i['properties']['nonCloudArea'] != 6769200:
-#         print(i['properties']['nonCloudArea'])
-# 2018-03-12 has clouds
-# 2019-03-22
-# 2019-04-01 nr 179
-# 6769200
-# TODO: add vegetation gain and loss to pdf / test on server
+
 # TODO: remove clouds from calculation
 # TODO: chart changes changes over time
 # TODO: interactive map in html email
