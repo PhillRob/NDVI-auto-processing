@@ -271,10 +271,10 @@ def add_ee_layer(self, ee_object, vis_params, name):
 
 def add_data_to_html(soup, data, head_text, body_text, processing_date):
     project_name = data[list(data.keys())[0]]['project_name']
-    headline = soup.new_tag('h1')
+    headline = soup.new_tag('h1', id="intro_headline")
     headline.string = project_name
     soup.body.append(headline)
-    headline_two = soup.new_tag('h1')
+    headline_two = soup.new_tag('h1', id="intro_headline")
     headline_two.string = 'Vegetation Cover Change Report'
     soup.body.append(headline_two)
     date = soup.new_tag('p')
@@ -288,7 +288,7 @@ def add_data_to_html(soup, data, head_text, body_text, processing_date):
     newly available data. The maps show vegetation gain in green, vegetation loss in red.'
     soup.body.append(intro_text)
     for timeframe in data.keys():
-        bulletpoint_headline = soup.new_tag('h1')
+        bulletpoint_headline = soup.new_tag('h1', id="bulletpoint_headline")
         bulletpoint_headline.string = f'{head_text[timeframe]} vegetation evaluation \
         ({data[timeframe]["start_date_satellite"]} to {data[timeframe]["end_date_satellite"]})'
         soup.body.append(bulletpoint_headline)
@@ -303,7 +303,7 @@ def add_data_to_html(soup, data, head_text, body_text, processing_date):
     new_page = soup.new_tag('p', **{'class': 'new-page'})
     soup.body.append(new_page)
     for timeframe in data.keys():
-        image_headline = soup.new_tag('h2')
+        image_headline = soup.new_tag('h2', id="image_headline")
         image_headline.string = f'{project_name} {head_text[timeframe]} vegetation evaluation \
         ({data[timeframe]["start_date_satellite"]} to {data[timeframe]["end_date_satellite"]})'
         soup.body.append(image_headline)
@@ -312,34 +312,39 @@ def add_data_to_html(soup, data, head_text, body_text, processing_date):
         soup.body.append(area_paragraph)
         cover_start = soup.new_tag('p')
         cover_start.string = f'Vegetation cover ({data[timeframe]["start_date_satellite"]}): \
-        {data[timeframe]["vegetation_start"]} m² ({data[timeframe]["vegetation_share_start"]} %)'
+        {data[timeframe]["vegetation_start"]} m² ({data[timeframe]["vegetation_share_start"]:.2f} %)'
         soup.body.append(cover_start)
         cover_end = soup.new_tag('p')
         cover_end.string = f'Vegetation cover ({data[timeframe]["end_date_satellite"]}): \
-        {data[timeframe]["vegetation_end"]} m² ({data[timeframe]["vegetation_share_end"]} %)'
+        {data[timeframe]["vegetation_end"]} m² ({data[timeframe]["vegetation_share_end"]:.2f} %)'
         soup.body.append(cover_end)
         net_veg_change = soup.new_tag('p')
         net_veg_change.string = f'Net vegetation change: \
         {data[timeframe]["vegetation_start"] - data[timeframe]["vegetation_end"]} m² \
-        ({data[timeframe]["vegetation_share_start"] - data[timeframe]["vegetation_share_end"]} %)'
+        ({data[timeframe]["vegetation_share_start"] - data[timeframe]["vegetation_share_end"]:.2f} %)'
         soup.body.append(net_veg_change)
         veg_gain = soup.new_tag('p')
         veg_gain.string = f'Vegetation gain (green): \
-        {data[timeframe]["vegetation_gain"]} m² ({data[timeframe]["vegetation_gain_relative"]} %)'
+        {data[timeframe]["vegetation_gain"]} m² ({data[timeframe]["vegetation_gain_relative"]:.2f} %)'
         soup.body.append(veg_gain)
         veg_loss = soup.new_tag('p')
         veg_loss.string = f'Vegetation loss (red): \
-        {data[timeframe]["vegetation_loss"]} m² ({data[timeframe]["vegetation_loss_relative"]} %)'
+        {data[timeframe]["vegetation_loss"]} m² ({data[timeframe]["vegetation_loss_relative"]:.2f} %)'
         soup.body.append(veg_loss)
 
         img = Path(data[timeframe]['path']).resolve()
         html_img = soup.new_tag('img', src=img)
-        soup.body.append(html_img)
+        img_formatting = soup.new_tag('div', id="img_format")
+        img_formatting.append(html_img)
+        soup.body.append(img_formatting)
+        # necessary for page break
+        new_page = soup.new_tag('p', **{'class': 'new-page'})
+        soup.body.append(new_page)
     return soup
 
-def convert_html_to_pdf(source_html, output_filename, save_path):
+def convert_html_to_pdf(source_html, output_filename):
     # open output file for writing (truncated binary)
-    result_file = open(save_path + output_filename, "w+b")
+    result_file = open(output_filename, "w+b")
 
     # convert HTML to PDF
     pisa_status = pisa.CreatePDF(
@@ -580,10 +585,8 @@ for timeframe in timeframes:
 if new_report:
     soup = add_data_to_html(soup, data[processing_date], head_text, body_text, processing_date)
     pisa.showLogging()
-    if local_test_run:
-        convert_html_to_pdf(soup.prettify(), f'vegetation_report_{processing_date}.pdf', '../output/')
-    else:
-        convert_html_to_pdf(soup.prettify(), f'vegetation_report_{processing_date}.pdf', 'output/')
+    convert_html_to_pdf(soup.prettify(), PDF_PATH)
+
 
 if not local_test_run:
     if new_report:

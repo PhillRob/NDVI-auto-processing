@@ -1,18 +1,19 @@
 <html>
     <head>
-        <style>
+        <style type="text/css">
             @page {
                 size: a4 portrait;
             @frame header_frame {           /* Static Frame */
                 -pdf-frame-content: header_content;
-                left: 1000pt; width: 163pt; top: 1cm; bottom: 1cm;
+                left: 1cm; width: 5.67cm; top: 1cm; height: 2.4cm;
                 }
             @frame content_frame {          /* Content Frame */
-                left: 0pt; width: 512pt; top: 90pt; height: 632pt;
+                margin-left: 1cm; margin-bottom: 1cm; margin-top: 4.4cm;
+                 margin-right: 1cm;
                 }
             @frame footer_frame {           /* Another static Frame */
                 -pdf-frame-content: footer_content;
-                left: 50pt; width: 512pt; top: 772pt; height: 20pt;
+                margin-right: 1cm; right:10pt; bottom:10pt; height: 15pt;
                 }
             }
             @media print {
@@ -20,15 +21,47 @@
                     page-break-after: always;
                 }
             }
-            h1 {
+            #intro_headline{
+                font-size: 18pt;
+                color: #376092;
+                margin: 0;
+                padding: 0;
+            }
+            #bulletpoint_headline{
+                font-size: 14pt;
+                margin:0;
+                padding:0;
+                margin-top: 1cm;
+                color: #376092;
+            }
+            #image_headline{
+                font-size: 14pt;
+                margin: 0;
+                padding: 0;
+            }
+            #img_format{
+                margin-top: 1cm;
+            }
+            p {
+                font-size: 10pt;
+                margin: 0;
+                padding:0;
+            }
 
+            ul {
+                font-size:10pt;
+                margin-left: 1cm;
+            }
+            li{
+                margin-left: 0.5cm;
             }
         </style>
     </head>
     <body>
      <!-- Content for Static Frame 'footer_frame' -->
-        <div id="footer_content">page <pdf:pagenumber>
-            of <pdf:pagecount>
+        <div id="footer_content">
+            <p style="text-align:right; font-size:8pt;"><pdf:pagenumber></p>
+            <p style="text-align:left; font-size:8pt;">BPLA GmbH</p>
         </div>
     </body>
 </html>
