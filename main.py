@@ -66,16 +66,19 @@ soup.body.append(html_logo)
 py_date = datetime.utcnow()
 ee_date = ee.Date(py_date)
 # print(ee_date)
+one_year_timedelta = timedelta(days=365)
+five_year_timedelta = timedelta(days=(365*5))
 start_date = ee.Date(py_date.replace(year=2016, month=7, day=1))
 end_date = ee_date
 
-# 2018-03-12 has clouds
+
+
 timeframes = {
     'two_weeks': {'start_date': (ee.Date(py_date - timedelta(days=14))), 'end_date': end_date},
-    'one_year': {'start_date': ee.Date(py_date - timedelta(days=365)), 'end_date': end_date},
-    'since_2016': {'start_date': ee.Date(py_date - timedelta(days=(365 * 5))), 'end_date': ee.Date(py_date)},
-    'nov_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=11, day=1)), 'end_date': ee.Date(py_date.replace(month=11))},
-    'july_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=7, day=1)), 'end_date': ee.Date(py_date.replace(month=7))},
+    'one_year': {'start_date': ee.Date(py_date - one_year_timedelta), 'end_date': end_date},
+    'since_2016': {'start_date': ee.Date(py_date - five_year_timedelta), 'end_date': ee.Date(py_date)},
+    'nov_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=11, day=1)), 'end_date': ee.Date(py_date.replace(month=11, day=1) + five_year_timedelta)},
+    'july_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=7, day=1)), 'end_date': ee.Date(py_date.replace(month=7, day=1) + five_year_timedelta)},
 }
 head_text = {
     'two_weeks': 'Short-term: One-week',
@@ -443,13 +446,15 @@ with open(JSON_FILE_NAME, 'w', encoding='utf-8') as f:
 
 # loop through available data sets
 for timeframe in timeframes:
+    # get last image date
+    # timeframe_collection.limit(1,'system:time_start',False).first().date().format('dd.MM.YYYY').getInfo()
     timeframe_collection = collection.filterDate(timeframes[timeframe]['start_date'], timeframes[timeframe]['end_date'])
     ndvi_timeframe_collection = timeframe_collection.map(add_NDVI)
     ndvi_img_start = ee.Image(ndvi_timeframe_collection.toList(ndvi_timeframe_collection.size()).get(0))
     ndvi_img_end = ee.Image(ndvi_timeframe_collection.toList(ndvi_timeframe_collection.size()).get(ndvi_timeframe_collection.size().subtract(1)))
 
     # if there is no different image within that timeframe just take the next best
-    if timeframe_collection.size().getInfo() != 0:
+    if timeframe_collection.size().getInfo() > 1:
         latest_image = ee.Image(timeframe_collection.toList(timeframe_collection.size()).get(timeframe_collection.size().subtract(1)))
         first_image = ee.Image(timeframe_collection.toList(timeframe_collection.size()).get(0))
 
@@ -457,7 +462,7 @@ for timeframe in timeframes:
         first_image_date = first_image.date().format("dd.MM.YYYY").getInfo()
     else:
         latest_image = ee.Image(collection.toList(collection.size()).get(collection.size().subtract(1)))
-        first_image = ee.Image(collection.toList(collection.size()).get(collection.size().subtract(3)))
+        first_image = ee.Image(collection.toList(collection.size()).get(collection.size().subtract(2)))
 
         latest_image_date = latest_image.date().format("dd.MM.YYYY").getInfo()
         first_image_date = first_image.date().format("dd.MM.YYYY").getInfo()
