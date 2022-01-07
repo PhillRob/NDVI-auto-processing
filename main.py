@@ -36,12 +36,14 @@ if local_test_run:
     SCREENSHOT_SAVE_NAME = f'../output/growth_decline_'
     PDF_PATH = f'../output/pdf_growth_decline_{datetime.utcnow().strftime("%d.%m.%Y")}.pdf'
     CREDENTIALS_PATH = '../credentials/credentials.json'
+    REPORT_HTML = 'report.html'
 else:
     GEOJSON_PATH = 'NDVI-auto-processing/Diplomatic Quarter.geojson'
     JSON_FILE_NAME = 'output/data.json'
     SCREENSHOT_SAVE_NAME = f'output/growth_decline_'
     PDF_PATH = f'output/pdf_growth_decline_{datetime.utcnow().strftime("%d.%m.%Y")}.pdf'
     CREDENTIALS_PATH = 'credentials/credentials.json'
+    REPORT_HTML = 'NDVI-auto-processing/report.html'
 
 # ee.Authenticate()
 ee.Initialize()
@@ -53,7 +55,7 @@ with open(GEOJSON_PATH) as f:
 geometry = geo_data['features'][0]['geometry']
 
 # open html for pdf generation
-with open(Path('report.html').absolute(), 'r') as html_text:
+with open(REPORT_HTML, 'r') as html_text:
     source_html = html_text.read()
 
 logo = Path('static/bpla_logo_blau.png').resolve()
