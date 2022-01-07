@@ -53,7 +53,7 @@ with open(GEOJSON_PATH) as f:
 geometry = geo_data['features'][0]['geometry']
 
 # open html for pdf generation
-with open(Path('report.html').resolve(), 'r') as html_text:
+with open(Path('report.html').absolute(), 'r') as html_text:
     source_html = html_text.read()
 
 logo = Path('static/bpla_logo_blau.png').resolve()
