@@ -325,8 +325,8 @@ def add_data_to_html(soup, data, head_text, body_text, processing_date):
         soup.body.append(cover_end)
         net_veg_change = soup.new_tag('p')
         net_veg_change.string = f'Net vegetation change: \
-        {data[timeframe]["vegetation_start"] - data[timeframe]["vegetation_end"]} m² \
-        ({data[timeframe]["vegetation_share_start"] - data[timeframe]["vegetation_share_end"]:.2f} %)'
+        {data[timeframe]["vegetation_end"] - data[timeframe]["vegetation_start"]} m² \
+        ({data[timeframe]["vegetation_share_end"] - data[timeframe]["vegetation_share_start"]:.2f} %)'
         soup.body.append(net_veg_change)
         veg_gain = soup.new_tag('p')
         veg_gain.string = f'Vegetation gain (green): \

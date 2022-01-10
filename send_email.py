@@ -22,7 +22,6 @@ from xhtml2pdf import pisa
 # http = PoolManager(timeout=no_timeout)
 
 # general smtp mailer vars
-fromaddr = "mailer@bp-la.com"
 sendtest = False
 
 
@@ -37,8 +36,7 @@ def sendEmail(test, project_data, credentials_path, path_to_pdf):
     }
     with open(credentials_path) as c:
         credentials = json.load(c)
-    apiToken = credentials['api_token']
-
+    fromaddr = credentials['fromaddr']
     # recipients list
     if test:
         addr = ['gilbert.john@outlook.de']
