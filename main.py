@@ -79,15 +79,23 @@ timeframes = {
     'two_weeks': {'start_date': (ee.Date(py_date - timedelta(days=14))), 'end_date': end_date},
     'one_year': {'start_date': ee.Date(py_date - one_year_timedelta), 'end_date': end_date},
     'since_2016': {'start_date': ee.Date(py_date - five_year_timedelta), 'end_date': ee.Date(py_date)},
-    'nov_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=11, day=1)), 'end_date': ee.Date(py_date.replace(month=11, day=1) + five_year_timedelta)},
-    'july_2016': {'start_date': ee.Date(py_date.replace(year=2016, month=7, day=1)), 'end_date': ee.Date(py_date.replace(month=7, day=1) + five_year_timedelta)},
+    'nov_2016': {'start_date': ee.Date(
+        py_date.replace(year=py_date.year - 5, month=11, day=1) if py_date.replace(month=11, day=1) <= py_date else py_date.replace(year=py_date.year-6, month=11, day=1)
+    ), 'end_date': ee.Date(
+        py_date.replace(month=11, day=1) if py_date.replace(month=11, day=1) <= py_date else py_date.replace(year=py_date.year-1, month=11, day=1)
+    )},
+    'july_2016': {'start_date': ee.Date(
+        py_date.replace(year=py_date.year - 5, month=7, day=1) if py_date.replace(month=7, day=1) <= py_date else py_date.replace(year=py_date.year-6, month=7, day=1)
+    ), 'end_date': ee.Date(
+        py_date.replace(month=7, day=1) if py_date.replace(month=7, day=1) <= py_date else py_date.replace(year=py_date.year-1, month=7, day=1)
+    )},
 }
 head_text = {
     'two_weeks': 'Short-term: One-week',
     'one_year': 'Medium-term: One-year',
     'since_2016': 'Long-term: Five-year',
-    'nov_2016': 'Winter long-term: Five-year winter',
-    'july_2016': 'Summer long-term: Five-year summer',
+    'nov_2016': 'Long-term: Five-year winter',
+    'july_2016': 'Long-term: Five-year summer',
 }
 body_text = {
     'two_weeks': [
@@ -312,30 +320,32 @@ def add_data_to_html(soup, data, head_text, body_text, processing_date):
         image_headline.string = f'{project_name} {head_text[timeframe]} vegetation evaluation \
         ({data[timeframe]["start_date_satellite"]} to {data[timeframe]["end_date_satellite"]})'
         soup.body.append(image_headline)
-        area_paragraph = soup.new_tag('p')
+        ul = soup.new_tag('ul')
+        area_paragraph = soup.new_tag('li')
         area_paragraph.string = f'Project area: {data[timeframe]["project_area"]} km²'
-        soup.body.append(area_paragraph)
-        cover_start = soup.new_tag('p')
+        ul.append(area_paragraph)
+        cover_start = soup.new_tag('li')
         cover_start.string = f'Vegetation cover ({data[timeframe]["start_date_satellite"]}): \
         {data[timeframe]["vegetation_start"]} m² ({data[timeframe]["vegetation_share_start"]:.2f} %)'
-        soup.body.append(cover_start)
-        cover_end = soup.new_tag('p')
+        ul.append(cover_start)
+        cover_end = soup.new_tag('li')
         cover_end.string = f'Vegetation cover ({data[timeframe]["end_date_satellite"]}): \
         {data[timeframe]["vegetation_end"]} m² ({data[timeframe]["vegetation_share_end"]:.2f} %)'
-        soup.body.append(cover_end)
-        net_veg_change = soup.new_tag('p')
+        ul.append(cover_end)
+        net_veg_change = soup.new_tag('li')
         net_veg_change.string = f'Net vegetation change: \
         {data[timeframe]["vegetation_end"] - data[timeframe]["vegetation_start"]} m² \
         ({data[timeframe]["vegetation_share_end"] - data[timeframe]["vegetation_share_start"]:.2f} %)'
-        soup.body.append(net_veg_change)
-        veg_gain = soup.new_tag('p')
+        ul.append(net_veg_change)
+        veg_gain = soup.new_tag('li')
         veg_gain.string = f'Vegetation gain (green): \
         {data[timeframe]["vegetation_gain"]} m² ({data[timeframe]["vegetation_gain_relative"]:.2f} %)'
-        soup.body.append(veg_gain)
-        veg_loss = soup.new_tag('p')
+        ul.append(veg_gain)
+        veg_loss = soup.new_tag('li')
         veg_loss.string = f'Vegetation loss (red): \
         {data[timeframe]["vegetation_loss"]} m² ({data[timeframe]["vegetation_loss_relative"]:.2f} %)'
-        soup.body.append(veg_loss)
+        ul.append(veg_loss)
+        soup.body.append(ul)
 
         img = Path(data[timeframe]['path']).resolve()
         html_img = soup.new_tag('img', src=img)
@@ -434,8 +444,8 @@ collection = (ee.ImageCollection('COPERNICUS/S2')
               )
 ndvi_collection = collection.map(add_NDVI)
 # select images from collection
-cloud_mask_collection = collection.map(maskS2clouds)
-cloud_collection = cloud_mask_collection.map(get_cloud_stats)
+# cloud_mask_collection = collection.map(maskS2clouds)
+# cloud_collection = cloud_mask_collection.map(get_cloud_stats)
 image_list = []
 
 processing_date = py_date.strftime('%d.%m.%Y')
@@ -444,7 +454,7 @@ with open(JSON_FILE_NAME, 'r', encoding='utf-8') as f:
     if processing_date not in data.keys():
         data[processing_date] = {}
 with open(JSON_FILE_NAME, 'w', encoding='utf-8') as f:
-    json.dump(data, f)
+    json.dump(data, f, indent=4)
 
 # loop through available data sets
 for timeframe in timeframes:
@@ -469,13 +479,8 @@ for timeframe in timeframes:
         latest_image_date = latest_image.date().format("dd.MM.YYYY").getInfo()
         first_image_date = first_image.date().format("dd.MM.YYYY").getInfo()
 
-        ndvi_img_start = ee.Image(ndvi_collection.toList(ndvi_collection.size()).get(
-            ndvi_timeframe_collection.size().subtract(2)))
-        ndvi_img_end = ee.Image(ndvi_collection.toList(ndvi_collection.size()).get(
-            ndvi_timeframe_collection.size().subtract(1)))
-
-
-
+        ndvi_img_start = ee.Image(add_NDVI(first_image))
+        ndvi_img_end = ee.Image(add_NDVI(latest_image))
 
     project_area = get_project_area(first_image).getInfo()['properties']['project_area_size']
 
