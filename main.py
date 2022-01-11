@@ -556,7 +556,7 @@ for timeframe in timeframes:
         else:
             print(f'All data for {timeframe} is up to date')
     with open(json_file_name, 'w', encoding='utf-8') as f:
-        json.dump(data, f)
+        json.dump(data, f, indent=4)
 
     # Define center of our map
     if new_report:
