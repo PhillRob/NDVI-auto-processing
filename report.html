@@ -11,9 +11,15 @@
                 margin-left: 2cm; margin-bottom: 1cm; margin-top: 3.92cm;
                  margin-right: 2cm;
                 }
+            @frame content_frame{
+                -pdf-frame-content: bpla_signature;
+                margin-left:2cm; height:20pt; margin-right:10cm;
+                bottom:10pt;
+            }
             @frame footer_frame {           /* Another static Frame */
                 -pdf-frame-content: footer_content;
-                margin-right: 2cm;margin-left: 2cm; right:10pt; bottom:10pt; height: 15pt;
+                margin-right:2cm; height:20pt; margin-left:10cm;
+                bottom:10pt;
                 }
             }
             @media print {
@@ -38,10 +44,17 @@
                 font-size: 14pt;
                 margin: 0;
                 padding: 0;
+                color: #376092;
             }
             #img_format{
                 margin-top: 1cm;
             }
+            #footer_paragraph{
+                font-size:8pt;
+                text-align:right;
+                line-height:0;
+            }
+
             p {
                 font-size: 10pt;
                 margin: 0;
@@ -60,8 +73,15 @@
     </head>
     <body>
      <!-- Content for Static Frame 'footer_frame' -->
-        <div id="footer_content">
-            <p style=font-size:8pt;text-align:left"><pdf:pagenumber></p>
-        </div>
+    <div id="footer_content">
+        <p style="footer_paragraph">
+            <pdf:pagenumber>
+        </p>
+    </div>
+    <div id="bpla_signature">
+        <p>
+            b-systems.com
+        </p>
+    </div>
     </body>
 </html>
