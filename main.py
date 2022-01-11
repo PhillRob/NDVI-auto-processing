@@ -322,28 +322,28 @@ def add_data_to_html(soup, data, head_text, body_text, processing_date):
         soup.body.append(image_headline)
         ul = soup.new_tag('ul')
         area_paragraph = soup.new_tag('li')
-        area_paragraph.string = f'Project area: {data[timeframe]["project_area"]} km²'
+        area_paragraph.string = f'Project area: {data[timeframe]["project_area"]:,} km²'
         ul.append(area_paragraph)
         cover_start = soup.new_tag('li')
         cover_start.string = f'Vegetation cover ({data[timeframe]["start_date_satellite"]}): \
-        {data[timeframe]["vegetation_start"]} m² ({data[timeframe]["vegetation_share_start"]:.2f} %)'
+        {data[timeframe]["vegetation_start"]:,} m² ({data[timeframe]["vegetation_share_start"]:.2f} %)'
         ul.append(cover_start)
         cover_end = soup.new_tag('li')
         cover_end.string = f'Vegetation cover ({data[timeframe]["end_date_satellite"]}): \
-        {data[timeframe]["vegetation_end"]} m² ({data[timeframe]["vegetation_share_end"]:.2f} %)'
+        {data[timeframe]["vegetation_end"]:,} m² ({data[timeframe]["vegetation_share_end"]:.2f} %)'
         ul.append(cover_end)
         net_veg_change = soup.new_tag('li')
         net_veg_change.string = f'Net vegetation change: \
-        {data[timeframe]["vegetation_end"] - data[timeframe]["vegetation_start"]} m² \
+        {data[timeframe]["vegetation_end"] - data[timeframe]["vegetation_start"]:,} m² \
         ({data[timeframe]["vegetation_share_end"] - data[timeframe]["vegetation_share_start"]:.2f} %)'
         ul.append(net_veg_change)
         veg_gain = soup.new_tag('li')
         veg_gain.string = f'Vegetation gain (green): \
-        {data[timeframe]["vegetation_gain"]} m² ({data[timeframe]["vegetation_gain_relative"]:.2f} %)'
+        {data[timeframe]["vegetation_gain"]:,} m² ({data[timeframe]["vegetation_gain_relative"]:.2f} %)'
         ul.append(veg_gain)
         veg_loss = soup.new_tag('li')
         veg_loss.string = f'Vegetation loss (red): \
-        {data[timeframe]["vegetation_loss"]} m² ({data[timeframe]["vegetation_loss_relative"]:.2f} %)'
+        {data[timeframe]["vegetation_loss"]:,} m² ({data[timeframe]["vegetation_loss_relative"]:.2f} %)'
         ul.append(veg_loss)
         soup.body.append(ul)
 
