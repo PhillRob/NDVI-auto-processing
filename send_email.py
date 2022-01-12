@@ -55,29 +55,26 @@ def sendEmail(test, project_data, credentials_path, path_to_pdf):
     msgAlternative = MIMEMultipart('alternative')
     msgRoot.attach(msgAlternative)
 
-    text = 'Dear all, <br> Here we report on the the vegetation change in the Diplomatic Quarter. The results are based on the analysis of the Sentinel 2 Satellite data. The email is provided as soon as new data becomes available every 7-14 days.<br>'
-    # for timeframe in project_data:
-    #     # Next, we attach the body of the email to the MIME message:
-    #     text += f'<h2>{project_data[timeframe]["project_name"]}: {head_text[timeframe]} vegetation evaluation ({project_data[timeframe]["start_date_satellite"]} to {project_data[timeframe]["end_date_satellite"]}) </h2>'
-    #     text += f'<img src="cid:image1{timeframe}"><br>'
-    #     text += f'Project area: {project_data[timeframe]["project_area"]:.2f} km²<br>Vegetation cover ({project_data[timeframe]["start_date"]}): {project_data[timeframe]["vegetation_start"]:,} m² ({project_data[timeframe]["vegetation_share_start"]:.2f}%)<br>Vegetation cover ({project_data[timeframe]["end_date"]}): {project_data[timeframe]["vegetation_end"]:,} m² ({project_data[timeframe]["vegetation_share_end"]:.2f}%)<br>Net vegetation change: {project_data[timeframe]["area_change"]:,} m² ({project_data[timeframe]["vegetation_share_change"]:.2f}%)<br><br>'
-    #
-    #     # This example assumes the image is in the current directory
-    #     fp = open(project_data[timeframe]['path'], 'rb')
-    #     msgImage = MIMEImage(fp.read())
-    #     fp.close()
-    #
-    #     # Define the image's ID as referenced above
-    #     msgImage.add_header('Content-ID', f'<image1{timeframe}>')
-    #     msgRoot.attach(msgImage)
+    text = f'Dear all, <br> Here we report on the the vegetation change in the { project_data["two_weeks"]["project_name"]}. The results are based on the analysis of the Sentinel 2 Satellite data. The email is provided as soon as new data becomes available every 7-14 days. \
+    <br><br>Please contact mailer@b-systems.com for any feedback and comments.<br><br>\
+    Kind regards<br>boedeker systems<br>b-systems.com<br>\
+    <img src="cid:image1" width="200"><br>'
     msgText = MIMEText(
         text, 'html'
     )
-
     msgAlternative.attach(msgText)
+    # This example assumes the image is in the current directory
+    fp = open(Path('static/bpla_logo_blau.png').resolve(), 'rb')
+    msgImage = MIMEImage(fp.read())
+    fp.close()
+
+    # Define the image's ID as referenced above
+    msgImage.add_header('Content-ID', '<image1>')
+    msgRoot.attach(msgImage)
+
     with open(path_to_pdf, 'rb') as f:
         pdf_attach = MIMEApplication(f.read(), _subtype='pdf')
-    pdf_attach.add_header('Content-Disposition', 'attachment', filename=str(path_to_pdf))
+    pdf_attach.add_header('Content-Disposition', 'attachment', filename=str(path_to_pdf.split('/')[-1]))
     msgRoot.attach(pdf_attach)
     # For sending the mail, we have to convert the object to a string, and then use the same prodecure as above to send
     # using the SMTP server.

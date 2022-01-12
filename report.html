@@ -5,17 +5,19 @@
                 size: a4 portrait;
             @frame header_frame {           /* Static Frame */
                 -pdf-frame-content: header_content;
-                left: 2cm; width: 4.53cm; height: 1.92cm;
+                left: 2cm; width: 4cm; height: 1.695cm;
+                margin-top: 1cm;
                 }
             @frame content_frame {          /* Content Frame */
-                margin-left: 2cm; margin-bottom: 1cm; margin-top: 3.92cm;
+                margin-left: 2cm; margin-bottom: 1cm; margin-top: 3cm;
                  margin-right: 2cm;
                 }
             @frame content_frame{
                 -pdf-frame-content: bpla_signature;
                 margin-left:2cm; height:20pt; margin-right:10cm;
-                bottom:10pt;
+                bottom:10pt; height:40pt;
             }
+
             @frame footer_frame {           /* Another static Frame */
                 -pdf-frame-content: footer_content;
                 margin-right:2cm; height:20pt; margin-left:10cm;
@@ -54,7 +56,27 @@
                 text-align:right;
                 line-height:0;
             }
-
+            #signature{
+                padding-top:200pt;
+                padding-bottom:0;
+                width:30pt;
+                vertical-align:bottom;
+            }
+            .project_header{
+                text-align:right;
+            }
+            .bpla_footer_styling{
+                line-height: 100%;
+            }
+            .version{
+                padding-bottom:20px;
+            }
+            .title_padding_under_intro{
+                padding-bottom:25px;
+            }
+            .kind_regards{
+                padding-top:100px;
+            }
             p {
                 font-size: 10pt;
                 margin: 0;
@@ -78,7 +100,13 @@
             <pdf:pagenumber>
         </p>
     </div>
-    <div id="bpla_signature">
+    <div id="bpla_signature" class="bpla_footer_styling">
+        <p>
+            BPLA GmbH
+        </p>
+        <p>
+            contact@b-systems.com
+        </p>
         <p>
             b-systems.com
         </p>

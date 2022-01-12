@@ -284,9 +284,6 @@ def add_ee_layer(self, ee_object, vis_params, name):
 
 def add_data_to_html(soup, data, head_text, body_text, processing_date):
     project_name = data[list(data.keys())[0]]['project_name']
-    project_name_paragraph = soup.new_tag('p', id="project", **{'class': 'project_header'})
-    project_name_paragraph.string = project_name
-    soup.body.append(project_name_paragraph)
     headline = soup.new_tag('p', id="intro_headline")
     headline.string = project_name
     soup.body.append(headline)
@@ -296,10 +293,13 @@ def add_data_to_html(soup, data, head_text, body_text, processing_date):
     date = soup.new_tag('p')
     date.string = processing_date
     soup.body.append(date)
-    version = soup.new_tag('p', {'class':'version'})
+    version = soup.new_tag('p', **{'class': 'version'})
     version.string = 'v1.0'
     soup.body.append(version)
-    intro_text = soup.new_tag('p')
+    dear_all = soup.new_tag('p')
+    dear_all.string = 'Dear all,'
+    soup.body.append(dear_all)
+    intro_text = soup.new_tag('p', **{'class': 'title_padding_under_intro'})
     intro_text.string = 'This report localises vegetation changes for five time periods every 7 to 10 days based on \
     newly available data. The maps show vegetation gain in green, vegetation loss in red.'
     soup.body.append(intro_text)
@@ -314,10 +314,12 @@ def add_data_to_html(soup, data, head_text, body_text, processing_date):
             li.string = bulletpoint
             ul.append(li)
         soup.body.append(ul)
-    signature = soup.new_tag('p', id="signature")
-    signature.string = 'BPLA GmbH · contact@b-systems.com · b-systems.com'
-    soup.body.append(signature)
-
+    regards = soup.new_tag('p', **{'class': 'kind_regards'})
+    regards.string = 'Kind regards,'
+    soup.body.append(regards)
+    regards = soup.new_tag('p')
+    regards.string = 'Boedeker Systems'
+    soup.body.append(regards)
     # necessary for page break
     new_page = soup.new_tag('p', **{'class': 'new-page'})
     soup.body.append(new_page)
