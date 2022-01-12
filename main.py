@@ -284,25 +284,28 @@ def add_ee_layer(self, ee_object, vis_params, name):
 
 def add_data_to_html(soup, data, head_text, body_text, processing_date):
     project_name = data[list(data.keys())[0]]['project_name']
-    headline = soup.new_tag('h1', id="intro_headline")
+    project_name_paragraph = soup.new_tag('p', id="project", **{'class': 'project_header'})
+    project_name_paragraph.string = project_name
+    soup.body.append(project_name_paragraph)
+    headline = soup.new_tag('p', id="intro_headline")
     headline.string = project_name
     soup.body.append(headline)
-    headline_two = soup.new_tag('h1', id="intro_headline")
+    headline_two = soup.new_tag('p', id="intro_headline")
     headline_two.string = 'Vegetation Cover Change Report'
     soup.body.append(headline_two)
     date = soup.new_tag('p')
     date.string = processing_date
     soup.body.append(date)
-    version = soup.new_tag('p')
-    version.string = 'v0.1'
+    version = soup.new_tag('p', {'class':'version'})
+    version.string = 'v1.0'
     soup.body.append(version)
     intro_text = soup.new_tag('p')
     intro_text.string = 'This report localises vegetation changes for five time periods every 7 to 10 days based on \
     newly available data. The maps show vegetation gain in green, vegetation loss in red.'
     soup.body.append(intro_text)
     for timeframe in data.keys():
-        bulletpoint_headline = soup.new_tag('h1', id="bulletpoint_headline")
-        bulletpoint_headline.string = f'{head_text[timeframe]} vegetation evaluation \
+        bulletpoint_headline = soup.new_tag('p', id="bulletpoint_headline")
+        bulletpoint_headline.string = f'{head_text[timeframe]} comparison \
         ({data[timeframe]["start_date_satellite"]} to {data[timeframe]["end_date_satellite"]})'
         soup.body.append(bulletpoint_headline)
         ul = soup.new_tag('ul')
@@ -311,13 +314,16 @@ def add_data_to_html(soup, data, head_text, body_text, processing_date):
             li.string = bulletpoint
             ul.append(li)
         soup.body.append(ul)
+    signature = soup.new_tag('p', id="signature")
+    signature.string = 'BPLA GmbH · contact@b-systems.com · b-systems.com'
+    soup.body.append(signature)
 
     # necessary for page break
     new_page = soup.new_tag('p', **{'class': 'new-page'})
     soup.body.append(new_page)
     for timeframe in data.keys():
-        image_headline = soup.new_tag('h2', id="image_headline")
-        image_headline.string = f'{project_name} {head_text[timeframe]} vegetation evaluation \
+        image_headline = soup.new_tag('p', id="image_headline")
+        image_headline.string = f'{head_text[timeframe]} comparison \
         ({data[timeframe]["start_date_satellite"]} to {data[timeframe]["end_date_satellite"]})'
         soup.body.append(image_headline)
         ul = soup.new_tag('ul')
@@ -360,14 +366,17 @@ def add_data_to_html(soup, data, head_text, body_text, processing_date):
 def convert_html_to_pdf(source_html, output_filename):
     # open output file for writing (truncated binary)
     result_file = open(output_filename, "w+b")
-
-    # convert HTML to PDF
-    pisa_status = pisa.CreatePDF(
-        source_html,  # the HTML to convert
-        dest=result_file)  # file handle to receive result
-
-    # close output file
-    result_file.close()  # close output file
+    try:
+        # convert HTML to PDF
+        pisa_status = pisa.CreatePDF(
+            source_html,  # the HTML to convert
+            dest=result_file)  # file handle to receive result
+    except Exception as e:
+        print(f'Error: {e}')
+        logging.debug(e)
+    finally:
+        # close output file
+        result_file.close()  # close output file
 
     # return False on success and True on errors
     return pisa_status.err
@@ -513,8 +522,8 @@ for timeframe in timeframes:
     decline_img = growth_decline_img.updateMask(decline_mask)
     growth_decline_img = growth_decline_img.updateMask(growth_decline_img_mask)
 
-    vegetation_loss = ee.Number(decline_img.reduceRegion(reducer=ee.Reducer.count())).getInfo()['thres'] * 100
     vegetation_gain = ee.Number(growth_img.reduceRegion(reducer=ee.Reducer.count())).getInfo()['thres'] * 100
+    vegetation_loss = area_change - vegetation_gain
     vegetation_loss_relative = -vegetation_loss/project_area * 100
     vegetation_gain_relative = vegetation_gain / project_area * 100
 
