@@ -34,25 +34,28 @@ if local_test_run:
     GEOJSON_PATH = 'Diplomatic Quarter.geojson'
     JSON_FILE_NAME = '../output/data.json'
     SCREENSHOT_SAVE_NAME = f'../output/growth_decline_'
-    PDF_PATH = f'../output/pdf_growth_decline_{datetime.utcnow().strftime("%d.%m.%Y")}.pdf'
     CREDENTIALS_PATH = '../credentials/credentials.json'
     REPORT_HTML = 'report.html'
 else:
     GEOJSON_PATH = 'NDVI-auto-processing/Diplomatic Quarter.geojson'
     JSON_FILE_NAME = 'output/data.json'
     SCREENSHOT_SAVE_NAME = f'output/growth_decline_'
-    PDF_PATH = f'output/pdf_growth_decline_{datetime.utcnow().strftime("%d.%m.%Y")}.pdf'
+
     CREDENTIALS_PATH = 'credentials/credentials.json'
     REPORT_HTML = 'NDVI-auto-processing/report.html'
-
-# ee.Authenticate()
-ee.Initialize()
 
 # variables
 # import AOI and set geometry
 with open(GEOJSON_PATH) as f:
     geo_data = json.load(f)
 geometry = geo_data['features'][0]['geometry']
+if local_test_run:
+    PDF_PATH = f'../output/{geo_data["name"]}-vegetation-report-{datetime.utcnow().strftime("%d.%m.%Y")}.pdf'
+else:
+    PDF_PATH = f'output/{geo_data["name"]}-vegetation-report-{datetime.utcnow().strftime("%d.%m.%Y")}.pdf'
+# ee.Authenticate()
+ee.Initialize()
+
 
 # open html for pdf generation
 with open(REPORT_HTML, 'r') as html_text:
@@ -76,7 +79,7 @@ end_date = ee_date
 
 
 timeframes = {
-    'two_weeks': {'start_date': (ee.Date(py_date - timedelta(days=14))), 'end_date': end_date},
+    'two_weeks': {'start_date': (ee.Date(py_date - timedelta(days=7))), 'end_date': end_date},
     'one_year': {'start_date': ee.Date(py_date - one_year_timedelta), 'end_date': end_date},
     'since_2016': {'start_date': ee.Date(py_date - five_year_timedelta), 'end_date': ee.Date(py_date)},
     'nov_2016': {'start_date': ee.Date(
@@ -492,6 +495,22 @@ for timeframe in timeframes:
 
         ndvi_img_start = ee.Image(add_NDVI(first_image))
         ndvi_img_end = ee.Image(add_NDVI(latest_image))
+
+    # adjust short-term timeframe text depending on difference of newest data
+    if timeframe == 'two_weeks':
+        week_diff = round(latest_image.date().difference(first_image.date(), 'weeks').getInfo())
+        if week_diff == 1:
+            head_text['two_weeks'] = 'Short-term: One-week'
+            body_text['two_weeks'] = [
+                'Direct irrigation, pruning and maintenance control for the last week',
+                'Focus on areas under maintenance (parks, roads)'
+            ]
+        else:
+            head_text['two_weeks'] = f'Short-term: {week_diff}-weeks'
+            body_text['two_weeks'] = [
+                f'Direct irrigation, pruning and maintenance control for the last {week_diff} weeks',
+                'Focus on areas under maintenance (parks, roads)'
+            ]
 
     project_area = get_project_area(first_image).getInfo()['properties']['project_area_size']
 

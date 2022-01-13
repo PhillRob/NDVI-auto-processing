@@ -26,22 +26,16 @@ sendtest = False
 
 
 def sendEmail(test, project_data, credentials_path, path_to_pdf):
-    # mapping different timeframes to the corresponding text
-    head_text = {
-        'two_weeks': 'One week',
-        'one_year': 'One year',
-        'nov_2016': 'Five year winter',
-        'july_2016': 'Five year summer',
-        'since_2016': 'Five year'
-    }
     with open(credentials_path) as c:
         credentials = json.load(c)
     fromaddr = credentials['fromaddr']
     # recipients list
     if test:
-        addr = ['gilbert.john@outlook.de']
+        addr = ['g.john@bp-la.com']
+        bcc = ['gilbert.john@outlook.de']
     else:
         addr = ['gilbert.john@outlook.de', 'robeck@bp-la.com', 'alkhawand@bp-la.com']
+        bcc = []
 
     # mail vars
     msgRoot = MIMEMultipart('related')
@@ -55,7 +49,7 @@ def sendEmail(test, project_data, credentials_path, path_to_pdf):
     msgAlternative = MIMEMultipart('alternative')
     msgRoot.attach(msgAlternative)
 
-    text = f'Dear all, <br> Here we report on the the vegetation change in the { project_data["two_weeks"]["project_name"]}. The results are based on the analysis of the Sentinel 2 Satellite data. The email is provided as soon as new data becomes available every 7-14 days. \
+    text = f'Dear all, <br> Here we report on the the vegetation change in the { project_data["two_weeks"]["project_name"]}. The results are based on the analysis of the Sentinel 2 Satellite data. The email is provided as soon as new data becomes available every 7-30 days. \
     <br><br>Please contact mailer@b-systems.com for any feedback and comments.<br><br>\
     Kind regards<br>boedeker systems<br>b-systems.com<br>\
     <img src="cid:image1" width="200"><br>'
@@ -82,7 +76,7 @@ def sendEmail(test, project_data, credentials_path, path_to_pdf):
     server.starttls()
     server.ehlo()
     server.login(fromaddr, credentials['login_pw'])
-    server.sendmail(fromaddr, addr, msgRoot.as_string())
+    server.sendmail(fromaddr, addr + bcc, msgRoot.as_string())
     server.quit()
     gc.collect()
 
