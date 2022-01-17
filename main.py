@@ -583,7 +583,7 @@ for timeframe in timeframes:
             data[processing_date][timeframe]['path'] = screenshot_save_name
             data[processing_date][timeframe]['project_name'] = geo_data['name']
         else:
-            print(f'All data for {timeframe} is up to date')
+            print(f'No new data for {processing_date}.')
     with open(json_file_name, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=4)
 
@@ -637,7 +637,7 @@ if not local_test_run:
         logging.debug(f'No new email on {str(datetime.today())}')
 
 if email_test_run:
-    sendEmail(sendtest, open_project_date(JSON_FILE_NAME)[list(data.keys())[-1]], CREDENTIALS_PATH, 'output/pdf_growth_decline_13.01.2022.pdf')
+    sendEmail(sendtest, open_project_date(JSON_FILE_NAME)[list(data.keys())[-1]], CREDENTIALS_PATH, 'output/pdf_growth_decline_12.01.2022.pdf')
 
 # TODO: remove clouds from calculation
 # TODO: chart changes changes over time
