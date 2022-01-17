@@ -465,15 +465,12 @@ image_list = []
 processing_date = py_date.strftime('%d.%m.%Y')
 with open(JSON_FILE_NAME, 'r', encoding='utf-8') as f:
     data = json.load(f)
-    if processing_date not in data.keys():
-        data[processing_date] = {}
 with open(JSON_FILE_NAME, 'w', encoding='utf-8') as f:
     json.dump(data, f, indent=4)
 
 # loop through available data sets
 for timeframe in timeframes:
     # get last image date
-    # timeframe_collection.limit(1,'system:time_start',False).first().date().format('dd.MM.YYYY').getInfo()
     timeframe_collection = collection.filterDate(timeframes[timeframe]['start_date'], timeframes[timeframe]['end_date'])
     ndvi_timeframe_collection = timeframe_collection.map(add_NDVI)
     ndvi_img_start = ee.Image(ndvi_timeframe_collection.toList(ndvi_timeframe_collection.size()).get(0))
@@ -560,9 +557,11 @@ for timeframe in timeframes:
 
     with open(json_file_name, 'r', encoding='utf-8')as f:
         data = json.load(f)
-
-        if timeframe not in data[processing_date].keys():
-            print(f'Timeframe {timeframe} not yet covered. Will be generated.')
+        if latest_image_date != data[list(data.keys())[-2]][timeframe]['end_date_satellite']:
+            if processing_date not in data.keys():
+                print('proecessing date will be added.')
+                data[processing_date] = {}
+            print(f'Newest available data is from {latest_image_date}. Last generated report is from: {data.keys()[-1][timeframe]["end_date_satellite"]}')
             new_report = True
             data[processing_date][timeframe] = {}
             data[processing_date][timeframe]['start_date'] = timeframes[timeframe]['start_date'].format("dd.MM.YYYY").getInfo()
@@ -638,7 +637,7 @@ if not local_test_run:
         logging.debug(f'No new email on {str(datetime.today())}')
 
 if email_test_run:
-    sendEmail(sendtest, open_project_date(JSON_FILE_NAME)[processing_date], CREDENTIALS_PATH, PDF_PATH)
+    sendEmail(sendtest, open_project_date(JSON_FILE_NAME)[list(data.keys())[-1]], CREDENTIALS_PATH, 'output/pdf_growth_decline_13.01.2022.pdf')
 
 # TODO: remove clouds from calculation
 # TODO: chart changes changes over time
