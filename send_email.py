@@ -34,7 +34,7 @@ def sendEmail(test, project_data, credentials_path, path_to_pdf):
         addr = ['g.john@bp-la.com']
         bcc = ['gilbert.john@outlook.de']
     else:
-        addr = ['gilbert.john@outlook.de', 'robeck@bp-la.com', 'alkhawand@bp-la.com', 'j.boedeker@bp-la.com']
+        addr = ['gilbert.john@outlook.de', 'robeck@bp-la.com', 'alkhawand@bp-la.com','j.boedeker@bp-la.com']
         bcc = []
 
     # mail vars
