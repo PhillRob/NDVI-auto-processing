@@ -50,9 +50,9 @@ with open(GEOJSON_PATH) as f:
     geo_data = json.load(f)
 geometry = geo_data['features'][0]['geometry']
 if local_test_run:
-    PDF_PATH = f'../output/{geo_data["name"]}-vegetation-report-{datetime.utcnow().strftime("%d.%m.%Y")}.pdf'
+    PDF_PATH = f'../output/{datetime.utcnow().strftime("%Y%m%d")}-{geo_data["name"]}-Vegetation-Cover-Report.pdf'
 else:
-    PDF_PATH = f'output/{geo_data["name"]}-vegetation-report-{datetime.utcnow().strftime("%d.%m.%Y")}.pdf'
+    PDF_PATH = f'output/{datetime.utcnow().strftime("%Y%m%d")}-{geo_data["name"]}-Vegetation-Cover-Report.pdf'
 # ee.Authenticate()
 ee.Initialize()
 
@@ -468,6 +468,8 @@ with open(JSON_FILE_NAME, 'r', encoding='utf-8') as f:
 with open(JSON_FILE_NAME, 'w', encoding='utf-8') as f:
     json.dump(data, f, indent=4)
 
+new_report = False
+
 # loop through available data sets
 for timeframe in timeframes:
     # get last image date
@@ -548,7 +550,6 @@ for timeframe in timeframes:
     if area_change < 0:
         relative_change = -relative_change
 
-    new_report = False
 
     # compare date of latest image with last recorded image
     # if there is new data it will set new_report to True
@@ -557,9 +558,54 @@ for timeframe in timeframes:
 
     with open(json_file_name, 'r', encoding='utf-8')as f:
         data = json.load(f)
-        if latest_image_date != data[list(data.keys())[-2]][timeframe]['end_date_satellite']:
+        # create initial dict if empty
+        if data == {}:
+            print('creating initial data')
+            new_report = True
+            data[processing_date] = {}
+            data[processing_date][timeframe] = {}
+            data[processing_date][timeframe]['start_date'] = timeframes[timeframe]['start_date'].format("dd.MM.YYYY").getInfo()
+            data[processing_date][timeframe]['end_date'] = timeframes[timeframe]['end_date'].format("dd.MM.YYYY").getInfo()
+            data[processing_date][timeframe]['start_date_satellite'] = first_image_date
+            data[processing_date][timeframe]['end_date_satellite'] = latest_image_date
+            data[processing_date][timeframe]['vegetation_start'] = vegetation_start
+            data[processing_date][timeframe]['vegetation_end'] = vegetation_end
+            data[processing_date][timeframe]['vegetation_share_start'] = vegetation_share_start
+            data[processing_date][timeframe]['vegetation_share_end'] = vegetation_share_end
+            data[processing_date][timeframe]['vegetation_share_change'] = vegetation_share_change
+            data[processing_date][timeframe]['project_area'] = project_area/(1000*1000)
+            data[processing_date][timeframe]['area_change'] = area_change
+            data[processing_date][timeframe]['relative_change'] = relative_change
+            data[processing_date][timeframe]['vegetation_gain'] = vegetation_gain
+            data[processing_date][timeframe]['vegetation_loss'] = vegetation_loss
+            data[processing_date][timeframe]['vegetation_gain_relative'] = vegetation_gain_relative
+            data[processing_date][timeframe]['vegetation_loss_relative'] = vegetation_loss_relative
+            data[processing_date][timeframe]['path'] = screenshot_save_name
+            data[processing_date][timeframe]['project_name'] = geo_data['name']
+        elif timeframe not in data[processing_date].keys():
+            new_report = True
+            data[processing_date][timeframe] = {}
+            data[processing_date][timeframe]['start_date'] = timeframes[timeframe]['start_date'].format("dd.MM.YYYY").getInfo()
+            data[processing_date][timeframe]['end_date'] = timeframes[timeframe]['end_date'].format("dd.MM.YYYY").getInfo()
+            data[processing_date][timeframe]['start_date_satellite'] = first_image_date
+            data[processing_date][timeframe]['end_date_satellite'] = latest_image_date
+            data[processing_date][timeframe]['vegetation_start'] = vegetation_start
+            data[processing_date][timeframe]['vegetation_end'] = vegetation_end
+            data[processing_date][timeframe]['vegetation_share_start'] = vegetation_share_start
+            data[processing_date][timeframe]['vegetation_share_end'] = vegetation_share_end
+            data[processing_date][timeframe]['vegetation_share_change'] = vegetation_share_change
+            data[processing_date][timeframe]['project_area'] = project_area/(1000*1000)
+            data[processing_date][timeframe]['area_change'] = area_change
+            data[processing_date][timeframe]['relative_change'] = relative_change
+            data[processing_date][timeframe]['vegetation_gain'] = vegetation_gain
+            data[processing_date][timeframe]['vegetation_loss'] = vegetation_loss
+            data[processing_date][timeframe]['vegetation_gain_relative'] = vegetation_gain_relative
+            data[processing_date][timeframe]['vegetation_loss_relative'] = vegetation_loss_relative
+            data[processing_date][timeframe]['path'] = screenshot_save_name
+            data[processing_date][timeframe]['project_name'] = geo_data['name']
+        elif latest_image_date != data[list(data.keys())[-1]][timeframe]['end_date_satellite']:
             if processing_date not in data.keys():
-                print('proecessing date will be added.')
+                print('processing date will be added.')
                 data[processing_date] = {}
             print(f'Newest available data is from {latest_image_date}. Last generated report is from: {data.keys()[-1][timeframe]["end_date_satellite"]}')
             new_report = True
@@ -637,7 +683,7 @@ if not local_test_run:
         logging.debug(f'No new email on {str(datetime.today())}')
 
 if email_test_run:
-    sendEmail(sendtest, open_project_date(JSON_FILE_NAME)[list(data.keys())[-1]], CREDENTIALS_PATH, 'output/pdf_growth_decline_12.01.2022.pdf')
+    sendEmail(sendtest, open_project_date(JSON_FILE_NAME)[list(data.keys())[-1]], CREDENTIALS_PATH, PDF_PATH)
 
 # TODO: remove clouds from calculation
 # TODO: chart changes changes over time
