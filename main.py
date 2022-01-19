@@ -161,6 +161,7 @@ def get_cloud_stats(image):
         maxPixels=1e29
     )
     nonCloudArea = ee.Number(CloudStats.get('B1')).multiply(100)
+
     # CALC DIFF
     return ee.Feature(None, {
         'nonCloudArea': nonCloudArea,
@@ -303,7 +304,7 @@ def add_data_to_html(soup, data, head_text, body_text, processing_date):
     dear_all.string = 'Dear all,'
     soup.body.append(dear_all)
     intro_text = soup.new_tag('p', **{'class': 'title_padding_under_intro'})
-    intro_text.string = 'This report localises vegetation changes for five time periods every 7 to 10 days based on \
+    intro_text.string = 'This report localises vegetation changes for five time periods every 7 to 30 days based on \
     newly available data. The maps show vegetation gain in green, vegetation loss in red.'
     soup.body.append(intro_text)
     for timeframe in data.keys():
@@ -544,12 +545,11 @@ for timeframe in timeframes:
 
     vegetation_gain = ee.Number(growth_img.reduceRegion(reducer=ee.Reducer.count())).getInfo()['thres'] * 100
     vegetation_loss = area_change - vegetation_gain
-    vegetation_loss_relative = -vegetation_loss/project_area * 100
+    vegetation_loss_relative = -vegetation_loss / project_area * 100
     vegetation_gain_relative = vegetation_gain / project_area * 100
 
     if area_change < 0:
         relative_change = -relative_change
-
 
     # compare date of latest image with last recorded image
     # if there is new data it will set new_report to True
@@ -582,7 +582,7 @@ for timeframe in timeframes:
             data[processing_date][timeframe]['vegetation_loss_relative'] = vegetation_loss_relative
             data[processing_date][timeframe]['path'] = screenshot_save_name
             data[processing_date][timeframe]['project_name'] = geo_data['name']
-        elif timeframe not in data[processing_date].keys():
+        elif processing_date in data.keys() and timeframe not in data[processing_date].keys():
             new_report = True
             data[processing_date][timeframe] = {}
             data[processing_date][timeframe]['start_date'] = timeframes[timeframe]['start_date'].format("dd.MM.YYYY").getInfo()
@@ -607,7 +607,7 @@ for timeframe in timeframes:
             if processing_date not in data.keys():
                 print('processing date will be added.')
                 data[processing_date] = {}
-            print(f'Newest available data is from {latest_image_date}. Last generated report is from: {data.keys()[-1][timeframe]["end_date_satellite"]}')
+            print(f'Newest available data is from {latest_image_date}. Last generated report is from: {data[list(data.keys())[-2]][timeframe]["end_date_satellite"]}')
             new_report = True
             data[processing_date][timeframe] = {}
             data[processing_date][timeframe]['start_date'] = timeframes[timeframe]['start_date'].format("dd.MM.YYYY").getInfo()
