@@ -160,13 +160,15 @@ def get_cloud_stats(image):
         scale=10,
         maxPixels=1e29
     )
-    nonCloudArea = ee.Number(CloudStats.get('B1')).multiply(100)
-
-    # CALC DIFF
-    return ee.Feature(None, {
-        'nonCloudArea': nonCloudArea,
-        'name': name,
-        'system:time_start': date})
+    # nonCloudArea = ee.Number(CloudStats.get('B1')).multiply(100)
+    #
+    # # CALC DIFF
+    # return ee.Feature(None, {
+    #     'nonCloudArea': nonCloudArea,
+    #     'name': name,
+    #     'system:time_start': date})
+    image = image.set(CloudStats)
+    return image
 
 
 # NDVI function
@@ -455,12 +457,13 @@ collection = (ee.ImageCollection('COPERNICUS/S2')
               .filterDate(start_date, end_date)
               .filterBounds(geometry)
               .map(lambda image: image.clip(geometry))
-              .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 3))
+              # .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 3))
               )
-ndvi_collection = collection.map(add_NDVI)
 # select images from collection
-# cloud_mask_collection = collection.map(maskS2clouds)
-# cloud_collection = cloud_mask_collection.map(get_cloud_stats)
+# TODO: filter for cloud cover
+cloud_mask_collection = collection.map(maskS2clouds)
+cloud_collection = cloud_mask_collection.map(get_cloud_stats)
+ndvi_collection = collection.map(add_NDVI)
 image_list = []
 
 processing_date = py_date.strftime('%d.%m.%Y')
