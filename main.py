@@ -123,12 +123,9 @@ body_text = {
 # cloud masking function
 def maskS2clouds(image):
   qa = image.select('QA60')
-
   cloudBitMask = 1 << 10
   cirrusBitMask = 1 << 11
-
   mask = qa.bitwiseAnd(cloudBitMask).eq(0).And(qa.bitwiseAnd(cirrusBitMask).eq(0))
-
   return image.updateMask(mask).divide(10000)
 
 
@@ -148,14 +145,25 @@ def get_project_area(image):
         'system:time_start': date
         }
     )
+# ISSUE: added project size to imagecollection
+# collection.toList(collection.size()).get(collection.size().subtract(1)).getInfo() to see
+def get_project_size(image):
+    project_stats = image.select('B1').reduceRegion(
+        reducer=ee.Reducer.count(),
+        geometry=geometry,
+        scale=10,
+        maxPixels=1e29
+    )
+    project_area_size = ee.Number(project_stats.get('B1')).multiply(100)
 
+    image = image.set('project_area_size', project_area_size)
+    return image
 
+# ISSUE: cant use the calculated project size after the cloud mask function runs
+# cloud_collection.toList(cloud_collection.size()).get(cloud_collection.size().subtract(1)).getInfo() to see
 def get_cloud_stats(image):
     date = image.get('system:time_start')
     name = image.get('name')
-
-    project_size = ee.Number(get_project_area(image))
-
     CloudStats = image.select('B1').reduceRegion(
         reducer=ee.Reducer.count(),
         geometry=geometry,
@@ -165,9 +173,7 @@ def get_cloud_stats(image):
     nonCloudArea = ee.Number(CloudStats.get('B1')).multiply(100)
     # nonCloudPercentage = ee.Number(nonCloudArea).divide(ee.Number(image.get('project_area_size'))).multiply(100)
 
-    image = image.set(CloudStats)
     image = image.set('nonCloudArea', nonCloudArea)
-    image = image.set('project_size', project_size)
     return image
 
 
@@ -453,6 +459,7 @@ collection = (ee.ImageCollection('COPERNICUS/S2')
               .filterDate(start_date, end_date)
               .filterBounds(geometry)
               .map(lambda image: image.clip(geometry))
+              .map(get_project_size)
               .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 3))
               )
 # select images from collection
