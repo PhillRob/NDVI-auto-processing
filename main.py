@@ -1,16 +1,16 @@
 # !/usr/bin/python3
 # -*- coding: UTF-8 -*-
-# packages package
+
+# import packages
 import logging
 import bs4
-import datetime
+# import datetime
 import ee
 import folium
 import json
-import logging
 import os
-from fpdf import FPDF
 from pathlib import Path
+from datetime import datetime, timedelta
 import selenium.webdriver
 from selenium.webdriver.firefox.options import Options
 import time
@@ -48,11 +48,15 @@ else:
 # import AOI and set geometry
 with open(GEOJSON_PATH) as f:
     geo_data = json.load(f)
+
 geometry = geo_data['features'][0]['geometry']
+
 if local_test_run:
     PDF_PATH = f'../output/{datetime.utcnow().strftime("%Y%m%d")}-{geo_data["name"]}-Vegetation-Cover-Report.pdf'
 else:
     PDF_PATH = f'output/{datetime.utcnow().strftime("%Y%m%d")}-{geo_data["name"]}-Vegetation-Cover-Report.pdf'
+
+
 # ee.Authenticate()
 ee.Initialize()
 
@@ -71,15 +75,14 @@ soup.body.append(html_logo)
 py_date = datetime.utcnow()
 ee_date = ee.Date(py_date)
 # print(ee_date)
-one_year_timedelta = timedelta(days=365)
-five_year_timedelta = timedelta(days=(365*5))
+one_year_timedelta = datetime.timedelta(days=365)
+five_year_timedelta = datetime.timedelta(days=(365*5))
 start_date = ee.Date(py_date.replace(year=2016, month=7, day=1))
 end_date = ee_date
 
 
-
 timeframes = {
-    'two_weeks': {'start_date': (ee.Date(py_date - timedelta(days=7))), 'end_date': end_date},
+    'two_weeks': {'start_date': (ee.Date(py_date - datetime.timedelta(days=7))), 'end_date': end_date},
     'one_year': {'start_date': ee.Date(py_date - one_year_timedelta), 'end_date': end_date},
     'since_2016': {'start_date': ee.Date(py_date - five_year_timedelta), 'end_date': ee.Date(py_date)},
     'nov_2016': {'start_date': ee.Date(
@@ -93,6 +96,7 @@ timeframes = {
         py_date.replace(month=7, day=1) if py_date.replace(month=7, day=1) <= py_date else py_date.replace(year=py_date.year-1, month=7, day=1)
     )},
 }
+
 head_text = {
     'two_weeks': 'Short-term: One-week',
     'one_year': 'Medium-term: One-year',
@@ -100,6 +104,7 @@ head_text = {
     'nov_2016': 'Long-term: Five-year winter',
     'july_2016': 'Long-term: Five-year summer',
 }
+
 body_text = {
     'two_weeks': [
         'Direct irrigation, pruning and maintenance control for last two weeks',
@@ -120,62 +125,69 @@ body_text = {
     ]
 }
 
-# cloud masking function
-def maskS2clouds(image):
-  qa = image.select('QA60')
-  cloudBitMask = 1 << 10
-  cirrusBitMask = 1 << 11
-  mask = qa.bitwiseAnd(cloudBitMask).eq(0).And(qa.bitwiseAnd(cirrusBitMask).eq(0))
-  return image.updateMask(mask).divide(10000)
 
+##  Function to mask clouds using the Sentinel-2 QA band param {ee.Image} image Sentinel-2 image @return {ee.Image} cloud masked Sentinel-2 image
+#image = collection.first()
+
+def maskS2clouds(image):
+    qa = image.select('QA60')
+
+    # Bits 10 and 11 are clouds and cirrus, respectively.
+    cloudBitMask = ee.Number(2).pow(10).int()
+    cirrusBitMask = ee.Number(2).pow(11).int()
+
+    # Both flags should be set to zero, indicating clear conditions.
+    mask = qa.bitwiseAnd(cloudBitMask).eq(0).And(qa.bitwiseAnd(cirrusBitMask).eq(0))
+
+    image = image.updateMask(mask)
+    return image
 
 def get_project_area(image):
+    # made some changes here, pls check
     date = image.get('system:time_start')
     name = image.get('name')
-    project_stats = image.select('B1').reduceRegion(
-        reducer=ee.Reducer.count(),
+    area = image.select('B1').multiply(0).add(1).multiply(ee.Image.pixelArea()).rename('area')
+    project_stats = area.reduceRegion(
+        reducer=ee.Reducer.sum(),
         geometry=geometry,
         scale=10,
         maxPixels=1e29
     )
-    project_area_size = ee.Number(project_stats.get('B1')).multiply(100)
+    project_area_size = {'area': project_stats.get('area')}
+    #project_area_size = ee.Number(project_stats.get('B1')).multiply(100)
+
     return ee.Feature(None, {
         'project_area_size': project_area_size,
         'name': name,
         'system:time_start': date
         }
     )
-# ISSUE: added project size to imagecollection
-# collection.toList(collection.size()).get(collection.size().subtract(1)).getInfo() to see
+
 def get_project_size(image):
-    project_stats = image.select('B1').reduceRegion(
-        reducer=ee.Reducer.count(),
-        geometry=geometry,
-        scale=10,
-        maxPixels=1e29
+    area = image.select('B1').multiply(0).add(1).multiply(ee.Image.pixelArea()).rename('area')
+    project_stats = area.reduceRegion(
+        reducer = ee.Reducer.sum(),
+        geometry = geometry,
+        scale = 10,
+        maxPixels = 1e29
     )
-    project_area_size = ee.Number(project_stats.get('B1')).multiply(100)
-
-    image = image.set('project_area_size', project_area_size)
+    project_stats = {'area': project_stats.get('area')}
+    image = image.set(project_stats)
     return image
 
-# ISSUE: cant use the calculated project size after the cloud mask function runs
-# cloud_collection.toList(cloud_collection.size()).get(cloud_collection.size().subtract(1)).getInfo() to see
+
 def get_cloud_stats(image):
-    date = image.get('system:time_start')
-    name = image.get('name')
-    CloudStats = image.select('B1').reduceRegion(
-        reducer=ee.Reducer.count(),
+    noncloud_area = image.select('B1').multiply(0).add(1).multiply(ee.Image.pixelArea()).rename('noncloud_area')
+    cloud_stats = noncloud_area.reduceRegion(
+        reducer=ee.Reducer.sum(),
         geometry=geometry,
         scale=10,
         maxPixels=1e29
     )
-    nonCloudArea = ee.Number(CloudStats.get('B1')).multiply(100)
-    # nonCloudPercentage = ee.Number(nonCloudArea).divide(ee.Number(image.get('project_area_size'))).multiply(100)
-
-    image = image.set('nonCloudArea', nonCloudArea)
+    image = image.set({'noncloud_area': cloud_stats.get('noncloud_area')})
+    image = image.set({'cloudArea': image.getNumber('area').subtract(image.getNumber('noncloud_area'))})
+    image = image.set({'RelCloudArea': image.getNumber('cloudArea').divide(image.getNumber('area')).multiply(100)})
     return image
-
 
 # NDVI function
 def add_NDVI(image):
@@ -256,6 +268,7 @@ def add_ee_layer(self, ee_object, vis_params, name):
                 overlay=True,
                 control=True
             ).add_to(self)
+
         # display ee.ImageCollection()
         elif isinstance(ee_object, ee.imagecollection.ImageCollection):
             ee_object_new = ee_object.mosaic()
@@ -267,6 +280,7 @@ def add_ee_layer(self, ee_object, vis_params, name):
                 overlay=True,
                 control=True
             ).add_to(self)
+
         # display ee.Geometry()
         elif isinstance(ee_object, ee.geometry.Geometry):
             folium.GeoJson(
@@ -275,6 +289,7 @@ def add_ee_layer(self, ee_object, vis_params, name):
                 overlay=True,
                 control=True
             ).add_to(self)
+
         # display ee.FeatureCollection()
         elif isinstance(ee_object, ee.featurecollection.FeatureCollection):
             ee_object_new = ee.Image().paint(ee_object, 0, 2)
@@ -453,22 +468,38 @@ basemaps = {
     )
 }
 
-
+#### this is the action script
+### get collection
 # download image collection for the whole range of dates
 collection = (ee.ImageCollection('COPERNICUS/S2')
               .filterDate(start_date, end_date)
               .filterBounds(geometry)
               .map(lambda image: image.clip(geometry))
-              .map(get_project_size)
-              .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 3))
+              ##.map(get_project_size)
+              .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 90))
               )
+
+### clip to polygon: done in download script above
+### calculate overall project area
+collection = collection.map(get_project_size)
+
+### mask clouds
+cloud_mask_collection = collection.map(maskS2clouds)
+
+### calculate cloud area and new project area
+cloud_mask_collection = cloud_mask_collection.map(get_cloud_stats)
+
+#(collection.first().getInfo())
+
 # select images from collection
 # TODO: filter for cloud cover
-cloud_mask_collection = collection.map(maskS2clouds)
-cloud_collection = cloud_mask_collection.map(get_cloud_stats)
-ndvi_collection = collection.map(add_NDVI)
-image_list = []
 
+### calculate NDVI
+ndvi_collection = collection.map(add_NDVI)
+### maps and report
+
+
+image_list = []
 processing_date = py_date.strftime('%d.%m.%Y')
 with open(JSON_FILE_NAME, 'r', encoding='utf-8') as f:
     data = json.load(f)
@@ -691,6 +722,5 @@ if not local_test_run:
 if email_test_run:
     sendEmail(sendtest, open_project_date(JSON_FILE_NAME)[list(data.keys())[-1]], CREDENTIALS_PATH, PDF_PATH)
 
-# TODO: remove clouds from calculation
 # TODO: chart changes changes over time
 # TODO: interactive map in html email
