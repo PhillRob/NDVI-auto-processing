@@ -715,7 +715,7 @@ if new_report:
             # search for previous date that has the data
             for date in list(data.keys())[::-1]:
                 # fill data in
-                if timeframe in data[date]:
+                if timeframe in data[date].keys():
                     data[processing_date][timeframe]['start_date'] = data[date][timeframe]['start_date']
                     data[processing_date][timeframe]['end_date'] = data[date][timeframe]['end_date']
                     data[processing_date][timeframe]['start_date_satellite'] = data[date][timeframe]['start_date_satellite']
