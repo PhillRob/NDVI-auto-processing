@@ -734,6 +734,8 @@ if new_report:
                     data[processing_date][timeframe]['vegetation_loss_relative'] = data[date][timeframe]['vegetation_loss_relative']
                     data[processing_date][timeframe]['path'] = data[date][timeframe]['path']
                     data[processing_date][timeframe]['project_name'] = data[date][timeframe]['project_name']
+    # sort data before genrating report
+    data[processing_date] = {k: data[processing_date][k] for k in list(timeframes.keys())}
     with open(json_file_name, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=4)
     soup = add_data_to_html(soup, data[processing_date], head_text, body_text, processing_date)
