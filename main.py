@@ -712,6 +712,7 @@ if new_report:
     for timeframe in timeframes:
         # if no data for timeframe
         if timeframe not in data[processing_date].keys():
+            data[processing_date][timeframe] = {}
             # search for previous date that has the data
             for date in list(data.keys())[::-1]:
                 # fill data in
