@@ -75,14 +75,14 @@ soup.body.append(html_logo)
 py_date = datetime.utcnow()
 ee_date = ee.Date(py_date)
 # print(ee_date)
-one_year_timedelta = datetime.timedelta(days=365)
-five_year_timedelta = datetime.timedelta(days=(365*5))
+one_year_timedelta = timedelta(days=365)
+five_year_timedelta = timedelta(days=(365*5))
 start_date = ee.Date(py_date.replace(year=2016, month=7, day=1))
 end_date = ee_date
 
 
 timeframes = {
-    'two_weeks': {'start_date': (ee.Date(py_date - datetime.timedelta(days=7))), 'end_date': end_date},
+    'two_weeks': {'start_date': (ee.Date(py_date - timedelta(days=7))), 'end_date': end_date},
     'one_year': {'start_date': ee.Date(py_date - one_year_timedelta), 'end_date': end_date},
     'since_2016': {'start_date': ee.Date(py_date - five_year_timedelta), 'end_date': ee.Date(py_date)},
     'nov_2016': {'start_date': ee.Date(
@@ -493,7 +493,9 @@ cloud_mask_collection = cloud_mask_collection.map(get_cloud_stats)
 
 # select images from collection
 # TODO: filter for cloud cover
-
+collection = cloud_mask_collection.filter(
+    ee.Filter.lt('RelCloudArea', 3)
+)
 ### calculate NDVI
 ndvi_collection = collection.map(add_NDVI)
 ### maps and report
@@ -549,7 +551,7 @@ for timeframe in timeframes:
                 'Focus on areas under maintenance (parks, roads)'
             ]
 
-    project_area = get_project_area(first_image).getInfo()['properties']['project_area_size']
+    project_area = get_project_area(first_image).getInfo()['properties']['project_area_size']['area']
 
     vegetation_start = get_veg_stats(first_image).getInfo()["properties"]["NDVIarea"]
     vegetation_end = get_veg_stats(latest_image).getInfo()["properties"]["NDVIarea"]
@@ -707,6 +709,33 @@ for timeframe in timeframes:
         os.remove(html_map)
 
 if new_report:
+    for timeframe in timeframes:
+        # if no data for timeframe
+        if timeframe not in data[processing_date].keys():
+            # search for previous date that has the data
+            for date in list(data.keys())[::-1]:
+                # fill data in
+                if timeframe in data[date]:
+                    data[processing_date][timeframe]['start_date'] = data[date][timeframe]['start_date']
+                    data[processing_date][timeframe]['end_date'] = data[date][timeframe]['end_date']
+                    data[processing_date][timeframe]['start_date_satellite'] = data[date][timeframe]['start_date_satellite']
+                    data[processing_date][timeframe]['end_date_satellite'] = data[date][timeframe]['end_date_satellite']
+                    data[processing_date][timeframe]['vegetation_start'] = data[date][timeframe]['vegetation_start']
+                    data[processing_date][timeframe]['vegetation_end'] = data[date][timeframe]['vegetation_end']
+                    data[processing_date][timeframe]['vegetation_share_start'] = data[date][timeframe]['vegetation_share_start']
+                    data[processing_date][timeframe]['vegetation_share_end'] = data[date][timeframe]['vegetation_share_end']
+                    data[processing_date][timeframe]['vegetation_share_change'] = data[date][timeframe]['vegetation_share_change']
+                    data[processing_date][timeframe]['project_area'] = data[date][timeframe]['project_area']
+                    data[processing_date][timeframe]['area_change'] = data[date][timeframe]['area_change']
+                    data[processing_date][timeframe]['relative_change'] = data[date][timeframe]['relative_change']
+                    data[processing_date][timeframe]['vegetation_gain'] = data[date][timeframe]['vegetation_gain']
+                    data[processing_date][timeframe]['vegetation_loss'] = data[date][timeframe]['vegetation_loss']
+                    data[processing_date][timeframe]['vegetation_gain_relative'] = data[date][timeframe]['vegetation_gain_relative']
+                    data[processing_date][timeframe]['vegetation_loss_relative'] = data[date][timeframe]['vegetation_loss_relative']
+                    data[processing_date][timeframe]['path'] = data[date][timeframe]['path']
+                    data[processing_date][timeframe]['project_name'] = data[date][timeframe]['project_name']
+    with open(json_file_name, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=4)
     soup = add_data_to_html(soup, data[processing_date], head_text, body_text, processing_date)
     pisa.showLogging()
     convert_html_to_pdf(soup.prettify(), PDF_PATH)
