@@ -353,7 +353,7 @@ def add_data_to_html(soup, data, head_text, body_text, processing_date):
         soup.body.append(image_headline)
         ul = soup.new_tag('ul')
         area_paragraph = soup.new_tag('li')
-        area_paragraph.string = f'Project area: {data[timeframe]["project_area"]:,2f} km²'
+        area_paragraph.string = f'Project area: {data[timeframe]["project_area"]:,3f} km²'
         ul.append(area_paragraph)
         cover_start = soup.new_tag('li')
         cover_start.string = f'Vegetation cover ({data[timeframe]["start_date_satellite"]}): \
