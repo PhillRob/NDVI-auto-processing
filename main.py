@@ -476,26 +476,26 @@ collection = (ee.ImageCollection('COPERNICUS/S2')
               .filterBounds(geometry)
               .map(lambda image: image.clip(geometry))
               ##.map(get_project_size)
-              .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 90))
+              .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 3))
               )
 
 ### clip to polygon: done in download script above
 ### calculate overall project area
-collection = collection.map(get_project_size)
+# collection = collection.map(get_project_size)
 
 ### mask clouds
-cloud_mask_collection = collection.map(maskS2clouds)
+# cloud_mask_collection = collection.map(maskS2clouds)
 
 ### calculate cloud area and new project area
-cloud_mask_collection = cloud_mask_collection.map(get_cloud_stats)
+# cloud_mask_collection = cloud_mask_collection.map(get_cloud_stats)
 
 #(collection.first().getInfo())
 
 # select images from collection
 # TODO: filter for cloud cover
-collection = cloud_mask_collection.filter(
-    ee.Filter.lt('RelCloudArea', 3)
-)
+# collection = cloud_mask_collection.filter(
+#     ee.Filter.lt('RelCloudArea', 3)
+# )
 ### calculate NDVI
 ndvi_collection = collection.map(add_NDVI)
 ### maps and report
@@ -526,6 +526,7 @@ for timeframe in timeframes:
         latest_image_date = latest_image.date().format("dd.MM.YYYY").getInfo()
         first_image_date = first_image.date().format("dd.MM.YYYY").getInfo()
     else:
+        print('Alternativw collection.')
         latest_image = ee.Image(collection.toList(collection.size()).get(collection.size().subtract(1)))
         first_image = ee.Image(collection.toList(collection.size()).get(collection.size().subtract(2)))
 
@@ -561,17 +562,6 @@ for timeframe in timeframes:
     vegetation_share_start = (vegetation_start/project_area) * 100
     vegetation_share_end = (vegetation_end/project_area) * 100
     vegetation_share_change = vegetation_share_end - vegetation_share_start
-
-    cloud_image_first = maskS2clouds(first_image)
-    cloud_image_latest = maskS2clouds(latest_image)
-
-    # calculate both cloud images together
-    cloud_first_image_mask = cloud_image_first.eq(0)
-    cloud_latest_image_mask = cloud_image_latest.eq(0)
-    first_cloud_masked_image = first_image.updateMask(cloud_first_image_mask)
-    first_cloud_masked_image = first_cloud_masked_image.updateMask(cloud_latest_image_mask)
-    latest_cloud_masked_image = latest_image.updateMask(cloud_first_image_mask)
-    latest_cloud_masked_image = latest_cloud_masked_image.updateMask(cloud_latest_image_mask)
 
     # calculate difference between the two datasets
     growth_decline_img = ndvi_img_end.select('thres').subtract(ndvi_img_start.select('thres'))
@@ -686,7 +676,6 @@ for timeframe in timeframes:
 
         my_map.add_ee_layer(white_polygon, geo_vis_params, 'Half opaque polygon')
         my_map.add_ee_layer(growth_decline_img, growth_vis_params, 'Growth and decline image')
-        my_map.add_ee_layer(first_cloud_masked_image.select('B1'), cloud_vis_params, 'Cloudcover image')
 
         # fit bounds for optimal zoom level
         my_map.fit_bounds(swapped_coords)
@@ -707,6 +696,7 @@ for timeframe in timeframes:
         driver.quit()
         # discard temporary data
         os.remove(html_map)
+    print(f'timeframe: {timeframe} processed')
 
 if new_report:
     for timeframe in timeframes:
