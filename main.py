@@ -317,7 +317,7 @@ def add_data_to_html(soup, data, head_text, body_text, processing_date):
     date.string = processing_date
     soup.body.append(date)
     version = soup.new_tag('p', **{'class': 'version'})
-    version.string = 'v1.0'
+    version.string = 'v1.1'
     soup.body.append(version)
     dear_all = soup.new_tag('p')
     dear_all.string = 'Dear all,'
