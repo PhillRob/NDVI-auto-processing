@@ -526,7 +526,6 @@ for timeframe in timeframes:
         latest_image_date = latest_image.date().format("dd.MM.YYYY").getInfo()
         first_image_date = first_image.date().format("dd.MM.YYYY").getInfo()
     else:
-        print('Alternativw collection.')
         latest_image = ee.Image(collection.toList(collection.size()).get(collection.size().subtract(1)))
         first_image = ee.Image(collection.toList(collection.size()).get(collection.size().subtract(2)))
 
@@ -704,7 +703,7 @@ if new_report:
         if timeframe not in data[processing_date].keys():
             data[processing_date][timeframe] = {}
             # search for previous date that has the data
-            for date in list(data.keys())[::-1]:
+            for date in list(data.keys())[-2::-1]:
                 # fill data in
                 if timeframe in data[date].keys():
                     data[processing_date][timeframe]['start_date'] = data[date][timeframe]['start_date']
