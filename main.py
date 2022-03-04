@@ -471,7 +471,7 @@ basemaps = {
 #### this is the action script
 ### get collection
 # download image collection for the whole range of dates
-collection = (ee.ImageCollection('COPERNICUS/S2')
+collection = (ee.ImageCollection('COPERNICUS/S2_HARMONIZED')
               .filterDate(start_date, end_date)
               .filterBounds(geometry)
               .map(lambda image: image.clip(geometry))
