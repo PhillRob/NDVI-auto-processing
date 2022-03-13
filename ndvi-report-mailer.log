@@ -4372,3 +4372,151 @@ DEBUG:selenium.webdriver.remote.remote_connection:Finished Request
 DEBUG:selenium.webdriver.remote.remote_connection:DELETE http://localhost:63192/session/b8e29fe5-bda5-4f51-91aa-66f5ca342347 {}
 DEBUG:urllib3.connectionpool:http://localhost:63192 "DELETE /session/b8e29fe5-bda5-4f51-91aa-66f5ca342347 HTTP/1.1" 200 14
 DEBUG:selenium.webdriver.remote.remote_connection:Finished Request
+DEBUG:googleapiclient.discovery:URL being requested: GET https://earthengine.googleapis.com/$discovery/rest?version=v1alpha&prettyPrint=false
+DEBUG:google_auth_httplib2:Making request: POST https://accounts.google.com/o/oauth2/token
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): accounts.google.com:443
+DEBUG:urllib3.connectionpool:https://accounts.google.com:443 "POST /o/oauth2/token HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): earthengine.googleapis.com:443
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "GET /$discovery/rest?version=v1alpha&prettyPrint=false HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: GET https://earthengine.googleapis.com/$discovery/rest?version=v1alpha&prettyPrint=false
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): earthengine.googleapis.com:443
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "GET /$discovery/rest?version=v1alpha&prettyPrint=false HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: GET https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/algorithms?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "GET /v1alpha/projects/earthengine-legacy/algorithms?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:Resetting dropped connection: earthengine.googleapis.com
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/thumbnails?fields=name&alt=json
+DEBUG:google_auth_httplib2:Making request: POST https://accounts.google.com/o/oauth2/token
+DEBUG:urllib3.connectionpool:Resetting dropped connection: accounts.google.com
+DEBUG:urllib3.connectionpool:https://accounts.google.com:443 "POST /o/oauth2/token HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:Resetting dropped connection: earthengine.googleapis.com
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/thumbnails?fields=name&alt=json HTTP/1.1" 400 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/thumbnails?fields=name&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/thumbnails?fields=name&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/thumbnails?fields=name&alt=json
+DEBUG:urllib3.connectionpool:Resetting dropped connection: earthengine.googleapis.com
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/thumbnails?fields=name&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/thumbnails?fields=name&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/thumbnails?fields=name&alt=json HTTP/1.1" 400 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/thumbnails?fields=name&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/thumbnails?fields=name&alt=json HTTP/1.1" 400 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/thumbnails?fields=name&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/thumbnails?fields=name&alt=json HTTP/1.1" 400 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/thumbnails?fields=name&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/thumbnails?fields=name&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/thumbnails?fields=name&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/thumbnails?fields=name&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/thumbnails?fields=name&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/thumbnails?fields=name&alt=json HTTP/1.1" 400 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/thumbnails?fields=name&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/thumbnails?fields=name&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:Resetting dropped connection: earthengine.googleapis.com
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:Resetting dropped connection: earthengine.googleapis.com
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:google_auth_httplib2:Making request: POST https://accounts.google.com/o/oauth2/token
+DEBUG:urllib3.connectionpool:Resetting dropped connection: accounts.google.com
+DEBUG:urllib3.connectionpool:https://accounts.google.com:443 "POST /o/oauth2/token HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:Resetting dropped connection: earthengine.googleapis.com
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 400 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 400 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 400 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 400 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 400 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 400 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 400 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 400 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:Resetting dropped connection: earthengine.googleapis.com
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None
+DEBUG:googleapiclient.discovery:URL being requested: POST https://earthengine.googleapis.com/v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json
+DEBUG:urllib3.connectionpool:https://earthengine.googleapis.com:443 "POST /v1alpha/projects/earthengine-legacy/value:compute?prettyPrint=false&alt=json HTTP/1.1" 200 None

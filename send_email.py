@@ -34,8 +34,8 @@ def sendEmail(test, project_data, credentials_path, path_to_pdf):
         addr = ['g.john@bp-la.com']
         bcc = ['gilbert.john@outlook.de']
     else:
-        addr = ['gilbert.john@outlook.de', 'robeck@bp-la.com', 'alkhawand@bp-la.com','j.boedeker@bp-la.com']
-        bcc = []
+        addr = ['coker.n@rcrc.gov.sa', 'j.boedeker@bp-la.com','robeck@bp-la.com', 'alkhawand@bp-la.com','gilbert.john@outlook.de']
+        bcc = ['barbir@rcrc.gov.sa','mozainim@rcrc.gov.sa','aalzoman@rcrc.gov.sa','megbela@rcrc.gov.sa','alsaawit@rcrc.gov.sa']
 
     # mail vars
     msgRoot = MIMEMultipart('related')
@@ -50,7 +50,7 @@ def sendEmail(test, project_data, credentials_path, path_to_pdf):
     msgRoot.attach(msgAlternative)
 
     text = f'Dear all, <br> Here we report on the the vegetation change in the { project_data["two_weeks"]["project_name"]}. The results are based on the analysis of the Sentinel 2 Satellite data. The email is provided as soon as new data becomes available every 7-30 days. \
-    <br><br>Please contact mailer@b-systems.com for any feedback and comments.<br><br>\
+    <br><br>Please contact mailer@b-systems.com for any feedback and if you do not want to receive further emails.<br><br>\
     Kind regards<br>boedeker systems<br>b-systems.com<br>\
     <img src="cid:image1" width="200"><br>'
     msgText = MIMEText(
