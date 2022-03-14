@@ -59,6 +59,7 @@ else:
 
 # ee.Authenticate()
 ee.Initialize()
+geometry_feature = ee.FeatureCollection(geo_data)
 
 
 # open html for pdf generation
@@ -146,14 +147,15 @@ def get_project_area(image):
     # made some changes here, pls check
     date = image.get('system:time_start')
     name = image.get('name')
+    # aus polygon errechnen
     area = image.select('B1').multiply(0).add(1).multiply(ee.Image.pixelArea()).rename('area')
     project_stats = area.reduceRegion(
         reducer=ee.Reducer.sum(),
-        geometry=geometry,
+        geometry=geometry_feature,
         scale=10,
         maxPixels=1e29
     )
-    project_area_size = {'area': project_stats.get('area')}
+    project_area_size = {'area': ee.Number(ee.FeatureCollection(geo_data).first().geometry().area()).getInfo()}
     #project_area_size = ee.Number(project_stats.get('B1')).multiply(100)
 
     return ee.Feature(None, {
@@ -167,7 +169,7 @@ def get_project_size(image):
     area = image.select('B1').multiply(0).add(1).multiply(ee.Image.pixelArea()).rename('area')
     project_stats = area.reduceRegion(
         reducer = ee.Reducer.sum(),
-        geometry = geometry,
+        geometry = geometry_feature,
         scale = 10,
         maxPixels = 1e29
     )
@@ -180,7 +182,7 @@ def get_cloud_stats(image):
     noncloud_area = image.select('B1').multiply(0).add(1).multiply(ee.Image.pixelArea()).rename('noncloud_area')
     cloud_stats = noncloud_area.reduceRegion(
         reducer=ee.Reducer.sum(),
-        geometry=geometry,
+        geometry=geometry_feature,
         scale=10,
         maxPixels=1e29
     )
@@ -198,7 +200,7 @@ def add_NDVI(image):
     # calculate ndvi > 0.2 area
     ndviStats = ndvi02_area.reduceRegion(
         reducer=ee.Reducer.sum(),
-        geometry=geometry,
+        geometry=geometry_feature,
         scale=10,
         maxPixels=1e29
     )
@@ -211,7 +213,7 @@ def add_NDVI(image):
     # calculate area
     img_stats = area.reduceRegion(
         reducer=ee.Reducer.sum(),
-        geometry=geometry,
+        geometry=geometry_feature,
         scale=10,
         maxPixels=1e29
     )
@@ -242,7 +244,7 @@ def get_veg_stats(image):
 
     NDVIstats = image.select('ndvi02').reduceRegion(
         reducer=ee.Reducer.count(),
-        geometry=geometry,
+        geometry=geometry_feature,
         scale=10,
         maxPixels=1e29
     )
@@ -473,8 +475,8 @@ basemaps = {
 # download image collection for the whole range of dates
 collection = (ee.ImageCollection('COPERNICUS/S2_HARMONIZED')
               .filterDate(start_date, end_date)
-              .filterBounds(geometry)
-              .map(lambda image: image.clip(geometry))
+              .filterBounds(geometry_feature)
+              .map(lambda image: image.clip(geometry_feature))
               ##.map(get_project_size)
               .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 3))
               )
@@ -541,7 +543,7 @@ for timeframe in timeframes:
         if week_diff == 1:
             head_text['two_weeks'] = 'Short-term: One-week'
             body_text['two_weeks'] = [
-                'Direct irrigation, pruning and maintenance control for the last week',
+                'Direct <irrigation>, pruning and maintenance control for the last week',
                 'Focus on areas under maintenance (parks, roads)'
             ]
         else:
@@ -571,7 +573,9 @@ for timeframe in timeframes:
     decline_img = growth_decline_img.updateMask(decline_mask)
     growth_decline_img = growth_decline_img.updateMask(growth_decline_img_mask)
 
-    vegetation_gain = ee.Number(growth_img.reduceRegion(reducer=ee.Reducer.count())).getInfo()['thres'] * 100
+    vegetation_gain = ee.Number(growth_img.reduceRegion(
+        reducer=ee.Reducer.count(),
+        maxPixels=1e29)).getInfo()['thres'] * 100
     vegetation_loss = area_change - vegetation_gain
     vegetation_loss_relative = -vegetation_loss / project_area * 100
     vegetation_gain_relative = vegetation_gain / project_area * 100
