@@ -34,8 +34,8 @@ def sendEmail(test, project_data, credentials_path, path_to_pdf):
         addr = ['g.john@bp-la.com']
         bcc = ['gilbert.john@outlook.de']
     else:
-        addr = ['coker.n@rcrc.gov.sa', 'j.boedeker@bp-la.com','robeck@bp-la.com', 'alkhawand@bp-la.com','gilbert.john@outlook.de']
-        bcc = ['barbir@rcrc.gov.sa','mozainim@rcrc.gov.sa','aalzoman@rcrc.gov.sa','megbela@rcrc.gov.sa','alsaawit@rcrc.gov.sa']
+        addr = credentials['toaddr']
+        bcc = credentials['tobcc']
 
     # mail vars
     msgRoot = MIMEMultipart('related')
