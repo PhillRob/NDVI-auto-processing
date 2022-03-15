@@ -194,7 +194,8 @@ def get_cloud_stats(image):
 # NDVI function
 def add_NDVI(image):
     ndvi = image.normalizedDifference(['B8', 'B4']).rename('ndvi')
-    ndvi02 = ndvi.gt(0.2)
+    ndvi02 = ndvi.gte(0.2)
+    ndviImg = image.addBands(ndvi).updateMask(ndvi02)
     ndvi02_area = ndvi02.multiply(ee.Image.pixelArea()).rename('ndvi02_area')
 
     # calculate ndvi > 0.2 area
@@ -206,7 +207,6 @@ def add_NDVI(image):
     )
 
     image = image.set(ndviStats)
-
     # calculate area of AOI
     area = image.select('B1').multiply(0).add(1).multiply(ee.Image.pixelArea()).rename('area')
 
@@ -255,7 +255,6 @@ def get_veg_stats(image):
         'name': name,
         'system:time_start': date})
     # the above is better area stats. so something similar for the overall area in the add_NDVI function
-
 
 def add_ee_layer(self, ee_object, vis_params, name):
     """Adds a method for displaying Earth Engine image tiles to folium map."""
@@ -359,24 +358,24 @@ def add_data_to_html(soup, data, head_text, body_text, processing_date):
         ul.append(area_paragraph)
         cover_start = soup.new_tag('li')
         cover_start.string = f'Vegetation cover ({data[timeframe]["start_date_satellite"]}): \
-        {data[timeframe]["vegetation_start"]:,} m² ({data[timeframe]["vegetation_share_start"]:.2f} %)'
+        {data[timeframe]["vegetation_start"]:,.0f} m² ({data[timeframe]["vegetation_share_start"]:.2f} %)'
         ul.append(cover_start)
         cover_end = soup.new_tag('li')
         cover_end.string = f'Vegetation cover ({data[timeframe]["end_date_satellite"]}): \
-        {data[timeframe]["vegetation_end"]:,} m² ({data[timeframe]["vegetation_share_end"]:.2f} %)'
+        {data[timeframe]["vegetation_end"]:,.0f} m² ({data[timeframe]["vegetation_share_end"]:.2f} %)'
         ul.append(cover_end)
         net_veg_change = soup.new_tag('li')
         net_veg_change.string = f'Net vegetation change: \
-        {data[timeframe]["vegetation_end"] - data[timeframe]["vegetation_start"]:,} m² \
+        {data[timeframe]["vegetation_end"] - data[timeframe]["vegetation_start"]:,.0f} m² \
         ({data[timeframe]["vegetation_share_end"] - data[timeframe]["vegetation_share_start"]:.2f} %)'
         ul.append(net_veg_change)
         veg_gain = soup.new_tag('li')
         veg_gain.string = f'Vegetation gain (green): \
-        {data[timeframe]["vegetation_gain"]:,} m² ({data[timeframe]["vegetation_gain_relative"]:.2f} %)'
+        {data[timeframe]["vegetation_gain"]:,.0f} m² ({data[timeframe]["vegetation_gain_relative"]:.2f} %)'
         ul.append(veg_gain)
         veg_loss = soup.new_tag('li')
         veg_loss.string = f'Vegetation loss (red): \
-        {data[timeframe]["vegetation_loss"]:,} m² ({data[timeframe]["vegetation_loss_relative"]:.2f} %)'
+        {data[timeframe]["vegetation_loss"]:,.0f} m² ({data[timeframe]["vegetation_loss_relative"]:.2f} %)'
         ul.append(veg_loss)
         soup.body.append(ul)
 
@@ -481,18 +480,6 @@ collection = (ee.ImageCollection('COPERNICUS/S2_HARMONIZED')
               .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 3))
               )
 
-### clip to polygon: done in download script above
-### calculate overall project area
-# collection = collection.map(get_project_size)
-
-### mask clouds
-# cloud_mask_collection = collection.map(maskS2clouds)
-
-### calculate cloud area and new project area
-# cloud_mask_collection = cloud_mask_collection.map(get_cloud_stats)
-
-#(collection.first().getInfo())
-
 # select images from collection
 # TODO: filter for cloud cover
 # collection = cloud_mask_collection.filter(
@@ -555,8 +542,8 @@ for timeframe in timeframes:
 
     project_area = get_project_area(first_image).getInfo()['properties']['project_area_size']['area']
 
-    vegetation_start = get_veg_stats(first_image).getInfo()["properties"]["NDVIarea"]
-    vegetation_end = get_veg_stats(latest_image).getInfo()["properties"]["NDVIarea"]
+    vegetation_start = ndvi_img_start.getNumber('ndvi02_area').getInfo()
+    vegetation_end = ndvi_img_end.getNumber('ndvi02_area').getInfo()
     area_change = vegetation_end - vegetation_start
 
     relative_change = 100 - (vegetation_end/vegetation_start) * 100
@@ -564,18 +551,22 @@ for timeframe in timeframes:
     vegetation_share_end = (vegetation_end/project_area) * 100
     vegetation_share_change = vegetation_share_end - vegetation_share_start
 
-    # calculate difference between the two datasets
-    growth_decline_img = ndvi_img_end.select('thres').subtract(ndvi_img_start.select('thres'))
+    #calculate difference between the two datasets
+    growth_decline_img = ndvi_img_end.subtract(ndvi_img_start).select('thres')
     growth_decline_img_mask = growth_decline_img.neq(0)
-    growth_mask = growth_decline_img.eq(1)
     decline_mask = growth_decline_img.eq(-1)
+    growth_mask = growth_decline_img.eq(1)
     growth_img = growth_decline_img.updateMask(growth_mask)
     decline_img = growth_decline_img.updateMask(decline_mask)
     growth_decline_img = growth_decline_img.updateMask(growth_decline_img_mask)
+    # calculate area
+    vegetation_stats_gain = growth_img.reduceRegion(
+        reducer=ee.Reducer.sum(),
+        geometry=geometry_feature,
+        scale=10,
+        maxPixels=1e29)
+    vegetation_gain = ee.Number(vegetation_stats_gain.get('thres')).multiply(100).round().getInfo()
 
-    vegetation_gain = ee.Number(growth_img.reduceRegion(
-        reducer=ee.Reducer.count(),
-        maxPixels=1e29)).getInfo()['thres'] * 100
     vegetation_loss = area_change - vegetation_gain
     vegetation_loss_relative = -vegetation_loss / project_area * 100
     vegetation_gain_relative = vegetation_gain / project_area * 100
