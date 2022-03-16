@@ -530,7 +530,7 @@ for timeframe in timeframes:
         if week_diff == 1:
             head_text['two_weeks'] = 'Short-term: One-week'
             body_text['two_weeks'] = [
-                'Direct <irrigation>, pruning and maintenance control for the last week',
+                'Direct irrigation, pruning and maintenance control for the last week',
                 'Focus on areas under maintenance (parks, roads)'
             ]
         else:
