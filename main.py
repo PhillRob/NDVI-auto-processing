@@ -540,7 +540,7 @@ for timeframe in timeframes:
                 'Focus on areas under maintenance (parks, roads)'
             ]
 
-    project_area = get_project_area(first_image).getInfo()['properties']['project_area_size']['area']
+    project_area = ndvi_img_start.getNumber('area').getInfo()
 
     vegetation_start = ndvi_img_start.getNumber('ndvi02_area').getInfo()
     vegetation_end = ndvi_img_end.getNumber('ndvi02_area').getInfo()
