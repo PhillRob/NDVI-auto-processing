@@ -49,7 +49,7 @@ def sendEmail(test, project_data, credentials_path, path_to_pdf):
     msgAlternative = MIMEMultipart('alternative')
     msgRoot.attach(msgAlternative)
 
-    text = f'Dear all, <br> Here we report on the the vegetation change in the { project_data["two_weeks"]["project_name"]}. The results are based on the analysis of the Sentinel 2 Satellite data. The email is provided as soon as new data becomes available every 7-30 days. \
+    text = f'Dear all, <br> Here we report on the change in vegetation health for the { project_data["two_weeks"]["project_name"]}. The results are based on the analysis of the Sentinel 2 Satellite data. As soon as new data becomes available (every 7-30 days) we send this report. \
     <br><br>Please contact mailer@b-systems.com for any feedback and if you do not want to receive further emails.<br><br>\
     Kind regards<br>boedeker systems<br>b-systems.com<br>\
     <img src="cid:image1" width="200"><br>'

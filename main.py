@@ -208,17 +208,17 @@ def add_NDVI(image):
 
     image = image.set(ndviStats)
     # calculate area of AOI
-    area = image.select('B1').multiply(0).add(1).multiply(ee.Image.pixelArea()).rename('area')
-
-    # calculate area
-    img_stats = area.reduceRegion(
-        reducer=ee.Reducer.sum(),
-        geometry=geometry_feature,
-        scale=10,
-        maxPixels=1e29
-    )
-    image = image.set(img_stats)
-
+    # area = image.select('B1').multiply(0).add(1).multiply(ee.Image.pixelArea()).rename('area')
+    #
+    # # calculate area
+    # img_stats = area.reduceRegion(
+    #     reducer=ee.Reducer.sum(),
+    #     geometry=geometry_feature,
+    #     scale=10,
+    #     maxPixels=1e29
+    # )
+    # image = image.set(img_stats)
+    #todo: the next line needs to take the new area stats
     a = image.getNumber('ndvi02_area').divide(image.getNumber('area')).multiply(100)
     b = image.getNumber('ndvi02_area')
 
@@ -254,7 +254,7 @@ def get_veg_stats(image):
         'NDVIarea': NDVIarea,
         'name': name,
         'system:time_start': date})
-    # the above is better area stats. so something similar for the overall area in the add_NDVI function
+    # the above are better area stats. so something similar for the overall area in the add_NDVI function
 
 def add_ee_layer(self, ee_object, vis_params, name):
     """Adds a method for displaying Earth Engine image tiles to folium map."""
@@ -324,8 +324,8 @@ def add_data_to_html(soup, data, head_text, body_text, processing_date):
     dear_all.string = 'Dear all,'
     soup.body.append(dear_all)
     intro_text = soup.new_tag('p', **{'class': 'title_padding_under_intro'})
-    intro_text.string = 'This report localises vegetation changes for five time periods every 7 to 30 days based on \
-    newly available data. The maps show vegetation gain in green, vegetation loss in red.'
+    intro_text.string = 'This report localises changes in vegetation health for five time periods, based on \
+    available data. The maps show positive vegetation health changes gain in green, negative ones in red.'
     soup.body.append(intro_text)
     for timeframe in data.keys():
         bulletpoint_headline = soup.new_tag('p', id="bulletpoint_headline")
@@ -370,11 +370,11 @@ def add_data_to_html(soup, data, head_text, body_text, processing_date):
         ({data[timeframe]["vegetation_share_end"] - data[timeframe]["vegetation_share_start"]:.2f} %)'
         ul.append(net_veg_change)
         veg_gain = soup.new_tag('li')
-        veg_gain.string = f'Vegetation gain (green): \
+        veg_gain.string = f'Vegetation health increase (green): \
         {data[timeframe]["vegetation_gain"]:,.0f} m² ({data[timeframe]["vegetation_gain_relative"]:.2f} %)'
         ul.append(veg_gain)
         veg_loss = soup.new_tag('li')
-        veg_loss.string = f'Vegetation loss (red): \
+        veg_loss.string = f'Vegetation health decrease (red): \
         {data[timeframe]["vegetation_loss"]:,.0f} m² ({data[timeframe]["vegetation_loss_relative"]:.2f} %)'
         ul.append(veg_loss)
         soup.body.append(ul)
