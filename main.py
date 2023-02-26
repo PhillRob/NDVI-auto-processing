@@ -208,17 +208,17 @@ def add_NDVI(image):
 
     image = image.set(ndviStats)
     # calculate area of AOI
-    # area = image.select('B1').multiply(0).add(1).multiply(ee.Image.pixelArea()).rename('area')
-    #
-    # # calculate area
-    # img_stats = area.reduceRegion(
-    #     reducer=ee.Reducer.sum(),
-    #     geometry=geometry_feature,
-    #     scale=10,
-    #     maxPixels=1e29
-    # )
-    # image = image.set(img_stats)
-    #todo: the next line needs to take the new area stats
+    area = image.select('B1').multiply(0).add(1).multiply(ee.Image.pixelArea()).rename('area')
+
+    # calculate area
+    img_stats = area.reduceRegion(
+        reducer=ee.Reducer.sum(),
+        geometry=geometry_feature,
+        scale=10,
+        maxPixels=1e29
+    )
+    image = image.set(img_stats)
+
     a = image.getNumber('ndvi02_area').divide(image.getNumber('area')).multiply(100)
     b = image.getNumber('ndvi02_area')
 
@@ -254,7 +254,7 @@ def get_veg_stats(image):
         'NDVIarea': NDVIarea,
         'name': name,
         'system:time_start': date})
-    # the above are better area stats. so something similar for the overall area in the add_NDVI function
+    # the above is better area stats. so something similar for the overall area in the add_NDVI function
 
 def add_ee_layer(self, ee_object, vis_params, name):
     """Adds a method for displaying Earth Engine image tiles to folium map."""
@@ -477,7 +477,7 @@ collection = (ee.ImageCollection('COPERNICUS/S2_HARMONIZED')
               .filterBounds(geometry_feature)
               .map(lambda image: image.clip(geometry_feature))
               ##.map(get_project_size)
-              .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 3))
+              .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 1))
               )
 
 # select images from collection
