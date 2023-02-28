@@ -353,30 +353,37 @@ def add_data_to_html(soup, data, head_text, body_text, processing_date):
         ({data[timeframe]["start_date_satellite"]} to {data[timeframe]["end_date_satellite"]})'
         soup.body.append(image_headline)
         ul = soup.new_tag('ul')
+
         area_paragraph = soup.new_tag('li')
         area_paragraph.string = f'Project area: {data[timeframe]["project_area"]:.3f} km²'
         ul.append(area_paragraph)
+
         cover_start = soup.new_tag('li')
         cover_start.string = f'Vegetation cover ({data[timeframe]["start_date_satellite"]}): \
         {data[timeframe]["vegetation_start"]:,.0f} m² ({data[timeframe]["vegetation_share_start"]:.2f} %)'
         ul.append(cover_start)
+
         cover_end = soup.new_tag('li')
         cover_end.string = f'Vegetation cover ({data[timeframe]["end_date_satellite"]}): \
         {data[timeframe]["vegetation_end"]:,.0f} m² ({data[timeframe]["vegetation_share_end"]:.2f} %)'
         ul.append(cover_end)
+
+        veg_gain = soup.new_tag('li')
+        veg_gain.string = f'Vegetation health increase (green): \
+        {data[timeframe]["vegetation_gain"]:,.0f} m² ({data[timeframe]["vegetation_gain_relative"]:.2f} %)'
+        ul.append(veg_gain)
+
+        veg_loss = soup.new_tag('li')
+        veg_loss.string = f'Vegetation health decrease (red): \
+        {data[timeframe]["vegetation_loss"]:,.0f} m² ({data[timeframe]["vegetation_loss_relative"]:.2f} %)'
+        ul.append(veg_loss)
+
         net_veg_change = soup.new_tag('li')
         net_veg_change.string = f'Net vegetation change: \
         {data[timeframe]["vegetation_end"] - data[timeframe]["vegetation_start"]:,.0f} m² \
         ({data[timeframe]["vegetation_share_end"] - data[timeframe]["vegetation_share_start"]:.2f} %)'
         ul.append(net_veg_change)
-        veg_gain = soup.new_tag('li')
-        veg_gain.string = f'Vegetation health increase (green): \
-        {data[timeframe]["vegetation_gain"]:,.0f} m² ({data[timeframe]["vegetation_gain_relative"]:.2f} %)'
-        ul.append(veg_gain)
-        veg_loss = soup.new_tag('li')
-        veg_loss.string = f'Vegetation health decrease (red): \
-        {data[timeframe]["vegetation_loss"]:,.0f} m² ({data[timeframe]["vegetation_loss_relative"]:.2f} %)'
-        ul.append(veg_loss)
+
         soup.body.append(ul)
 
         img = Path(data[timeframe]['path']).resolve()
@@ -384,6 +391,7 @@ def add_data_to_html(soup, data, head_text, body_text, processing_date):
         img_formatting = soup.new_tag('div', id="img_format")
         img_formatting.append(html_img)
         soup.body.append(img_formatting)
+
         # necessary for page break
         new_page = soup.new_tag('p', **{'class': 'new-page'})
         soup.body.append(new_page)
