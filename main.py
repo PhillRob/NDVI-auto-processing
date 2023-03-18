@@ -147,7 +147,8 @@ def get_project_area(image):
     # made some changes here, pls check
     date = image.get('system:time_start')
     name = image.get('name')
-    # aus polygon errechnen
+
+    # calculate from polygon
     area = image.select('B1').multiply(0).add(1).multiply(ee.Image.pixelArea()).rename('area')
     project_stats = area.reduceRegion(
         reducer=ee.Reducer.sum(),
@@ -207,6 +208,7 @@ def add_NDVI(image):
     )
 
     image = image.set(ndviStats)
+
     # calculate area of AOI
     area = image.select('B1').multiply(0).add(1).multiply(ee.Image.pixelArea()).rename('area')
 
