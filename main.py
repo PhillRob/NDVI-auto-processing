@@ -233,6 +233,7 @@ def add_NDVI(image):
     image = image.addBands(b)
     return image
 
+
 def get_veg_stats(image):
     date = image.get('system:time_start')
     name = image.get('name')
