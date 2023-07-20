@@ -31,18 +31,17 @@ if len(sys.argv) >= 3:
 logging.basicConfig(filename='ndvi-report-mailer.log', level=logging.DEBUG)
 
 if local_test_run:
-    GEOJSON_PATH = 'Diplomatic Quarter.geojson'
+    GEOJSON_PATH = 'KKRS.geojson'
     JSON_FILE_NAME = '../output/data.json'
     SCREENSHOT_SAVE_NAME = f'../output/growth_decline_'
     CREDENTIALS_PATH = '../credentials/credentials.json'
     REPORT_HTML = 'report.html'
 else:
-    GEOJSON_PATH = 'NDVI-auto-processing/Diplomatic Quarter.geojson'
-    JSON_FILE_NAME = 'output/data.json'
-    SCREENSHOT_SAVE_NAME = f'output/growth_decline_'
-
-    CREDENTIALS_PATH = 'credentials/credentials.json'
-    REPORT_HTML = 'NDVI-auto-processing/report.html'
+    GEOJSON_PATH = 'KKRS/NDVI-auto-processing/Diplomatic Quarter.geojson'
+    JSON_FILE_NAME = 'KKRS/output/data.json'
+    SCREENSHOT_SAVE_NAME = f'KKRS/output/growth_decline_'
+    CREDENTIALS_PATH = 'KKRS/credentials/credentials.json'
+    REPORT_HTML = '/KKRS/NDVI-auto-processing/report.html'
 
 # variables
 # import AOI and set geometry
@@ -54,7 +53,7 @@ geometry = geo_data['features'][0]['geometry']
 if local_test_run:
     PDF_PATH = f'../output/{datetime.utcnow().strftime("%Y%m%d")}-{geo_data["name"]}-Vegetation-Cover-Report.pdf'
 else:
-    PDF_PATH = f'output/{datetime.utcnow().strftime("%Y%m%d")}-{geo_data["name"]}-Vegetation-Cover-Report.pdf'
+    PDF_PATH = f'KKRS/output/{datetime.utcnow().strftime("%Y%m%d")}-{geo_data["name"]}-Vegetation-Cover-Report.pdf'
 
 
 # ee.Authenticate()
@@ -224,7 +223,7 @@ def add_NDVI(image):
     a = image.getNumber('ndvi02_area').divide(image.getNumber('area')).multiply(100)
     b = image.getNumber('ndvi02_area')
 
-    # TODO: low priority: refactor! this is clunky and costly in terms of processing and storage. We do not need to have a band with a constant pixel value accorss the data set.
+    # TODO: low priority: refactor! this is clunky and costly in terms of processing and storage. We do not need to have a band with a constant pixel value across the data set.
     rel_cover = image.select('B1').multiply(0).add(a).rename('rel_ndvi')
     image = image.addBands(rel_cover)
     image = image.addBands(ndvi)
