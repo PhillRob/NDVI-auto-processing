@@ -42,7 +42,7 @@ else:
     JSON_FILE_NAME = 'KKRS/output/data.json'
     SCREENSHOT_SAVE_NAME = f'KKRS/output/growth_decline_'
     CREDENTIALS_PATH = 'KKRS/credentials/credentials.json'
-    REPORT_HTML = '/KKRS/NDVI-auto-processing/report.html'
+    REPORT_HTML = 'KKRS/NDVI-auto-processing/report.html'
 
 # variables
 # import AOI and set geometry
