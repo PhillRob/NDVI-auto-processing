@@ -37,7 +37,7 @@ if local_test_run:
     CREDENTIALS_PATH = '../credentials/credentials.json'
     REPORT_HTML = 'report.html'
 else:
-    GEOJSON_PATH = 'KKRS/NDVI-auto-processing/Diplomatic Quarter.geojson'
+    GEOJSON_PATH = 'KKRS/NDVI-auto-processing/KKRS.geojson'
     JSON_FILE_NAME = 'KKRS/output/data.json'
     SCREENSHOT_SAVE_NAME = f'KKRS/output/growth_decline_'
     CREDENTIALS_PATH = 'KKRS/credentials/credentials.json'
