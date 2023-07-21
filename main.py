@@ -30,6 +30,7 @@ if len(sys.argv) >= 3:
 
 logging.basicConfig(filename='ndvi-report-mailer.log', level=logging.DEBUG)
 
+
 if local_test_run:
     GEOJSON_PATH = 'KKRS.geojson'
     JSON_FILE_NAME = '../output/data.json'
