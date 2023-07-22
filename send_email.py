@@ -8,6 +8,7 @@ import logging
 from datetime import datetime, timedelta
 from pathlib import Path
 import smtplib
+from io import StringIO
 import json
 from email.mime.application import MIMEApplication
 from email.mime.image import MIMEImage
